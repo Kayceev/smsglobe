@@ -1,5 +1,5 @@
 /**
- * Universal Receipt Generator for DEEMAX
+ * Universal Receipt Generator for DEEMAXHUB
  * Supports PDF and Transparent PNG formats
  * @param {Object} order - The full order object containing transaction details
  */
@@ -70,7 +70,7 @@ async function generateUniversalReceipt(order) {
         </div>
 
         <div style="margin-top: 30px; text-align: center;">
-            <p style="margin: 0; font-size: 11px; color: #222; font-weight: 600;">Thank you for using DEEMAX!</p>
+            <p style="margin: 0; font-size: 11px; color: #222; font-weight: 600;">Thank you for using DEEMAXHUB!</p>
             <p style="margin: 5px 0; font-size: 9px; color: #999;">This is a computer-generated receipt. No signature required.</p>
         </div>
     `;
@@ -90,7 +90,7 @@ async function generateUniversalReceipt(order) {
 
         if (format === 'image') {
             const link = document.createElement('a');
-            link.download = `Deemax-${order.paymentReference}.png`;
+            link.download = `DeemaxHub-${order.paymentReference}.png`;
             link.href = imgData;
             link.click();
         } else {
@@ -99,7 +99,7 @@ async function generateUniversalReceipt(order) {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Deemax-${order.paymentReference}.pdf`);
+            pdf.save(`DeemaxHub-${order.paymentReference}.pdf`);
         }
     } catch (err) {
         console.error("Receipt error:", err);

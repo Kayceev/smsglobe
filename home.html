@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>Deemax | Virtual Numbers, Social Accounts, eSIMs &amp; RDP in Naira</title>
+    <title>DeemaxHub | Virtual Numbers, Social Accounts, eSIMs &amp; RDP in Naira</title>
     <meta name="description" content="Buy virtual numbers for WhatsApp, Telegram, Google and more, plus ready social accounts, VPN keys, proxies, US eSIMs and cloud RDP. One naira wallet, funded through Flutterwave.">
-    <meta name="author" content="Deemax">
+    <meta name="author" content="DeemaxHub">
     <!-- Testing copy of index.html: try changes here, then copy them over. Hidden from search engines -->
     <meta name="robots" content="noindex, follow">
     <link rel="canonical" href="https://www.deemaxhub.com/">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.deemaxhub.com/">
-    <meta property="og:title" content="Deemax | Virtual Numbers &amp; Digital Services in Naira">
+    <meta property="og:title" content="DeemaxHub | Virtual Numbers &amp; Digital Services in Naira">
     <meta property="og:description" content="Numbers for your sign-up codes, ready social accounts, VPN keys, eSIMs and cloud RDP. One naira wallet.">
     <meta property="og:image" content="https://www.deemaxhub.com/assets/logo.png">
     <meta property="twitter:card" content="summary_large_image">
@@ -34,12 +34,15 @@
                             midText: '#344054', lightText: '#667085', background: '#F0F5FE', border: '#EAECF0',
                         }
                     },
-                    fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'] },
+                    fontFamily: {
+                        sans: ['Outfit', 'system-ui', 'sans-serif'],
+                        display: ['Anton', 'Outfit', 'system-ui', 'sans-serif'], // Hero headline only
+                    },
                 },
             },
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Anton&display=swap" rel="stylesheet">
     <style>
         /* 1. PREVENT GLOBAL HORIZONTAL SCROLL */
         body { max-width: 100%; overflow-x: clip; } /* clip, not hidden: keeps the window as the only scroller */
@@ -96,7 +99,7 @@
     <!-- Header -->
     <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-40">
         <div class="max-w-6xl mx-auto h-16 px-4 md:px-6 flex items-center justify-between gap-4">
-            <a href="/" aria-label="Deemax home" class="shrink-0"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+            <a href="/" aria-label="DeemaxHub home" class="shrink-0"><img src="/assets/logo.png" alt="DeemaxHub" class="h-9 w-auto"></a>
 
             <nav class="hidden md:flex items-center gap-7 text-[14px] font-medium">
                 <a href="#services" class="text-brand-midText hover:text-brand-blue transition-colors">Services</a>
@@ -123,7 +126,7 @@
                 <a data-auth="in" href="/dashboard" class="hidden md:inline-block bg-brand-blue hover:bg-blue-700 text-white px-4 py-2 rounded-full text-[13px] font-bold transition-all active:scale-95 shadow-lg shadow-blue-200">Open dashboard</a>
 
                 <!-- Phones: one Sign in button, no menu -->
-                <a href="/login" class="md:hidden bg-brand-blue hover:bg-blue-700 text-white px-4 py-2 rounded-full text-[13px] font-bold transition-all active:scale-95">Sign in</a>
+                <a href="/login" class="md:hidden bg-brand-blue hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-[15px] font-bold transition-all active:scale-95">Sign in</a>
             </div>
         </div>
     </header>
@@ -131,14 +134,14 @@
     <main class="flex-grow">
 
         <!-- Hero (starts a small gap below the header; text and cards side by side on laptops) -->
-        <section class="max-w-6xl mx-auto px-4 md:px-6 pt-20 lg:pt-32 pb-14 lg:pb-20 grid lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+        <section class="max-w-6xl mx-auto px-4 md:px-6 pt-14 lg:pt-24 pb-14 lg:pb-20 grid lg:grid-cols-12 gap-10 lg:gap-12 items-start">
             <div class="lg:col-span-6">
-                <h1 class="text-[76px] leading-[0.92] sm:text-8xl lg:text-[112px] lg:leading-[0.9] font-black text-brand-darkText tracking-tight">
-                    1 hub,<br> <span class="text-brand-blue">7 services</span>
+                <h1 class="text-[86px] leading-[0.92] sm:text-[104px] lg:text-[124px] lg:leading-[0.9] font-display font-normal text-brand-darkText tracking-tight">
+                    1 Hub,<br> <span class="text-brand-blue text-[68px] sm:text-[82px] lg:text-[98px]">7 services</span>
                 </h1>
                 <p class="mt-5 text-[15px] md:text-lg leading-relaxed text-brand-midText max-w-xl">
                     Get a virtual number for WhatsApp, Telegram, Google or almost any app that sends a code.
-                    Deemax also sells ready social accounts, VPN keys, proxies, US eSIMs and cloud RDP, all from the same balance.
+                    DeemaxHub also sells ready social accounts, VPN keys, proxies, US eSIMs and cloud RDP, all from the same balance.
                 </p>
 
                 <div class="mt-8 flex flex-col sm:flex-row gap-3">
@@ -150,31 +153,16 @@
                         Browse VPN and socials
                     </a>
                 </div>
-
-                <ul class="mt-8 grid sm:grid-cols-3 gap-3 text-[13px] font-medium text-brand-darkText">
-                    <li class="flex items-center gap-2">
-                        <svg class="w-4 h-4 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                        No code, no charge
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <svg class="w-4 h-4 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                        Top up by card or transfer
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <svg class="w-4 h-4 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                        Accounts delivered instantly
-                    </li>
-                </ul>
             </div>
 
             <!-- Phones: the promo photo sits in the hero (10 KB WebP); laptops show the dashboard preview instead -->
             <div class="lg:hidden relative overflow-hidden rounded-[28px] border border-brand-border bg-black shadow-xl shadow-blue-900/5">
                 <picture>
                     <source type="image/webp" srcset="/assets/hero-code-800.webp 800w, /assets/hero-code-1600.webp 1600w" sizes="calc(100vw - 32px)">
-                    <img src="/assets/hero-code-1600.jpg" width="1600" height="893" decoding="async" alt="Hands holding a phone showing a WhatsApp code on Deemax" class="w-full aspect-[4/3] object-cover opacity-80">
+                    <img src="/assets/hero-code-1600.jpg" width="1600" height="893" decoding="async" alt="Hands holding a phone showing a WhatsApp code on DeemaxHub" class="w-full aspect-[4/3] object-cover opacity-80">
                 </picture>
                 <div class="absolute inset-0 flex flex-col justify-end p-5 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none">
-                    <span class="text-[10px] font-bold text-brand-orange uppercase tracking-widest mb-1">Deemax</span>
+                    <span class="text-[10px] font-bold text-brand-orange uppercase tracking-widest mb-1">DeemaxHub</span>
                     <p class="text-white text-xl font-black leading-tight max-w-md">Numbers, eSIMs and proxies. Instant activation.</p>
                 </div>
             </div>
@@ -356,7 +344,7 @@
                 </div>
 
                 <div class="mt-6 text-center">
-                    <a href="https://wa.me/2347059450227?text=Hi%20Deemax%2C%20I%27d%20like%20help%20with%20an%20order." target="_blank" rel="noopener" class="inline-flex items-center gap-2 bg-[#25D366] hover:opacity-90 text-white px-6 py-3 rounded-xl text-[14px] font-bold transition-all active:scale-95">
+                    <a href="https://wa.me/2347059450227?text=Hi%20DeemaxHub%2C%20I%27d%20like%20help%20with%20an%20order." target="_blank" rel="noopener" class="flex w-full md:inline-flex md:w-auto items-center justify-center gap-2 bg-brand-blue hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-[14px] font-bold transition-all active:scale-95 shadow-lg shadow-blue-200">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                         Text us on WhatsApp
                     </a>
@@ -467,7 +455,7 @@
                             What is a virtual number?
                             <svg class="faq-chevron w-5 h-5 shrink-0 text-brand-lightText transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </summary>
-                        <p class="pb-5 pr-8 text-[14px] leading-relaxed text-brand-lightText">A real phone number that receives SMS online, with no SIM card. You use it where an app asks for your phone number, and the code it sends shows up in your Deemax account. Your own number stays private.</p>
+                        <p class="pb-5 pr-8 text-[14px] leading-relaxed text-brand-lightText">A real phone number that receives SMS online, with no SIM card. You use it where an app asks for your phone number, and the code it sends shows up in your DeemaxHub account. Your own number stays private.</p>
                     </details>
                     <details class="faq group py-1">
                         <summary class="flex items-center justify-between gap-4 py-4 cursor-pointer text-[15px] md:text-base font-bold text-brand-darkText">
@@ -514,7 +502,7 @@
         <div class="max-w-6xl mx-auto px-4 md:px-6 pt-12 pb-8">
             <div class="grid md:grid-cols-12 gap-8 md:gap-10">
                 <div class="md:col-span-5">
-                    <img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto">
+                    <img src="/assets/logo.png" alt="DeemaxHub" class="h-9 w-auto">
                     <p class="mt-4 text-[14px] leading-relaxed text-brand-lightText max-w-xs">Virtual numbers, social accounts, VPN keys, proxies, eSIMs and cloud RDP, paid for from one naira wallet.</p>
                 </div>
                 <!-- Link Columns (always three side by side) -->
@@ -550,7 +538,7 @@
                 </div>
             </div>
             <div class="mt-10 pt-6 border-t border-brand-border text-[13px] text-brand-lightText">
-                <p>© <span id="year">2026</span> Deemax. All rights reserved.</p>
+                <p>© <span id="year">2026</span> DeemaxHub. All rights reserved.</p>
             </div>
         </div>
     </footer>

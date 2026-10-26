@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deemax Admin - eSIM Activations</title>
+    <title>DeemaxHub Admin - eSIM Activations</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png">
     <link rel="stylesheet" href="/assets/dark.css?v=16">
     <script src="/assets/theme.js?v=12"></script>
@@ -53,7 +53,7 @@
     <div class="flex">
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
             <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
-                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="DeemaxHub" class="h-9 w-auto"></a>
                 <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
             </div>
 
@@ -147,7 +147,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
                 <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
-                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="DeemaxHub" class="h-7 w-auto"></a>
                 <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">eSIM Activations</h1>
             </div>
             <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
@@ -536,7 +536,7 @@ async function generateUniversalReceipt(order, format) {
     receiptDiv.innerHTML = `
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-45deg); 
             font-size:40px; color:rgba(15, 84, 198, 0.05); font-weight:900; white-space:nowrap; pointer-events:none; z-index:0; text-transform:uppercase;">
-            DEEMAX 
+            DEEMAXHUB 
         </div>
 
         <div style="position:relative; z-index:1;">
@@ -583,7 +583,7 @@ async function generateUniversalReceipt(order, format) {
                 <p style="font-size:9px; color:#64748b; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">Provisioning Status</p>
                 <p style="font-size:14px; font-weight:800; color:#16a34a; font-family:monospace; margin:0;">${order.confirmationNumber || 'SUCCESSFULLY VERIFIED'}</p>
                 <div style="margin-top:20px;">
-                    <p style="font-size:10px; font-weight:800; color:#0f54c6; margin:0; letter-spacing:1px;">DEEMAX GLOBAL CONNECTIVITY</p>
+                    <p style="font-size:10px; font-weight:800; color:#0f54c6; margin:0; letter-spacing:1px;">DEEMAXHUB GLOBAL CONNECTIVITY</p>
                     <p style="font-size:8px; color:#94a3b8; margin-top:4px;">This document serves as proof of service delivery.<br>Electronically generated on secure node.</p>
                 </div>
             </div>

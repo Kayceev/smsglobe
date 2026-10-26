@@ -570,7 +570,7 @@ const systemSettingsSchema = new mongoose.Schema({
     smsFloorPriceNGN: { type: Number, default: 0, min: 0 }, // Lowest marked-up SMS price (fixed prices ignore it)
     accountMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to Sameeha accounts & VPN without their own price
     usdToNgnRate: { type: Number, default: 1400, min: 1 }, // Converts SMSBower USD prices to NGN
-    noticeBarText: { type: String, default: "Welcome to Deemax!" },
+    noticeBarText: { type: String, default: "Welcome to DeemaxHub!" },
     supportWhatsapp: { type: String, default: "" },
     referralBonusNGN: { type: Number, default: 3000, min: 0 }, // Paid into bonus balance at each milestone
     referralMilestone: { type: Number, default: 10, min: 1 }, // Qualified referrals per bonus
@@ -1288,7 +1288,7 @@ function createMailTransporter(extraOptions = {}) {
     });
 }
 
-// Sender header, e.g. "Deemax Support" <noreply@deemaxhub.com>. SendByte only sends from a verified domain
+// Sender header, e.g. "DeemaxHub Support" <noreply@deemaxhub.com>. SendByte only sends from a verified domain
 function mailFrom(name) {
     const address = process.env.EMAIL_FROM || process.env.EMAIL_USER;
     return `"${name}" <${address}>`;
@@ -1323,7 +1323,7 @@ app.all(['/api/:action', '/:action'], async (req, res) => {
 
     // DB-FREE ACTIONS (answered even while the database is slow or unreachable)
     if (action === 'status') {
-        return res.json({ success: true, message: "Deemax API Active", db: isConnected });
+        return res.json({ success: true, message: "DeemaxHub API Active", db: isConnected });
     }
     if (action === 'demo-login-status') return handleDemoLoginStatus(req, res);
 
@@ -1646,7 +1646,7 @@ async function handleGoogleLogin(req, res) {
         // 2. User Sign-In: Same Gates As Password Login
         const settings = await getSystemSettingsCached();
         if (settings?.maintenanceMode === true) {
-            return res.status(503).json({ success: false, message: "Deemax is currently under maintenance. Please try again later." });
+            return res.status(503).json({ success: false, message: "DeemaxHub is currently under maintenance. Please try again later." });
         }
 
         let user = await User.findOne({ email: normalizedEmail });
@@ -2398,7 +2398,7 @@ async function handleUserLogin(req, res) {
         if (settings && settings.maintenanceMode === true) {
             return res.status(503).json({ 
                 success: false, 
-                message: "Deemax is currently under maintenance. Please try again later." 
+                message: "DeemaxHub is currently under maintenance. Please try again later." 
             });
         }
 
@@ -2452,7 +2452,7 @@ async function handleUserRegister(req, res) {
     try {
         const settings = await getSystemSettingsCached();
         if (settings?.maintenanceMode === true) {
-            return res.status(503).json({ success: false, message: "Deemax is currently under maintenance. Please try again later." });
+            return res.status(503).json({ success: false, message: "DeemaxHub is currently under maintenance. Please try again later." });
         }
 
         const normalizedEmail = email.toLowerCase().trim();
@@ -2503,9 +2503,9 @@ async function handleUserRegister(req, res) {
         }
 
        await transporter.sendMail({
-    from: mailFrom('Deemax'),
+    from: mailFrom('DeemaxHub'),
     to: normalizedEmail,
-    subject: "Verify your Deemax Account",
+    subject: "Verify your DeemaxHub Account",
     html: `
         <!DOCTYPE html>
         <html>
@@ -2526,7 +2526,7 @@ async function handleUserRegister(req, res) {
                         <table class="container" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 440px; background-color: #ffffff; border: 1px solid #EAECF0; border-radius: 24px; padding: 32px; box-shadow: 0 4px 12px rgba(15, 84, 198, 0.05);">
                             <tr>
                                 <td align="center" style="padding-bottom: 24px;">
-                                    <img src="${APP_BASE_URL}/assets/logo.png" alt="Deemax" class="brand-logo" style="height: 28px; width: auto; display: block; outline: none; border: none; text-decoration: none;">
+                                    <img src="${APP_BASE_URL}/assets/logo.png" alt="DeemaxHub" class="brand-logo" style="height: 28px; width: auto; display: block; outline: none; border: none; text-decoration: none;">
                                 </td>
                             </tr>
                             
@@ -2534,7 +2534,7 @@ async function handleUserRegister(req, res) {
                                 <td align="center">
                                     <h2 style="margin: 0; color: #101828; font-size: 20px; font-weight: 700; line-height: 1.2;">Verify your email</h2>
                                     <p style="margin: 12px 0 0 0; color: #667085; font-size: 14px; line-height: 1.5;">
-                                        Thanks for joining Deemax! Please use the verification code below to complete your registration.
+                                        Thanks for joining DeemaxHub! Please use the verification code below to complete your registration.
                                     </p>
                                 </td>
                             </tr>
@@ -2554,7 +2554,7 @@ async function handleUserRegister(req, res) {
                                         If you didn't request this code, you can safely ignore this email.
                                     </p>
                                     <p style="margin: 8px 0 0 0; color: #98A2B3; font-size: 11px;">
-                                        &copy; 2026 Deemax. All rights reserved.
+                                        &copy; 2026 DeemaxHub. All rights reserved.
                                     </p>
                                 </td>
                             </tr>
@@ -2864,7 +2864,7 @@ async function handleInitiateTopup(req, res) {
                     creditNGN // What lands in the wallet
                 },
                 customizations: {
-                    title: "Deemax Wallet Topup",
+                    title: "DeemaxHub Wallet Topup",
                     logo: `${APP_BASE_URL}/assets/logo.png`
                 }
             }),
@@ -2914,7 +2914,7 @@ async function settleFlutterwaveTopup(transactionId) {
     const intent = await TopupIntent.findOne({ reference: txRef }).lean();
     if (!intent) {
         console.error(`⚠️ CRITICAL: Flutterwave payment ${transactionId} (${txRef}) has no top-up record. Not credited; check it in the Flutterwave dashboard.`);
-        return { httpStatus: 400, body: { success: false, message: "This payment wasn't started from your Deemax wallet. Contact support." } };
+        return { httpStatus: 400, body: { success: false, message: "This payment wasn't started from your DeemaxHub wallet. Contact support." } };
     }
     const userId = intent.userId;
 
@@ -3276,7 +3276,7 @@ async function handlePurchaseWithWallet(req, res) {
                 pricing: tier.pricing // Which price rule set the amount
             };
 
-            productDetails.name = `Deemax Global Provision (${country.countryId})`;
+            productDetails.name = `DeemaxHub Global Provision (${country.countryId})`;
             productDetails.plan = cleanText(meta.serviceName, 80) || "SMS Verification";
             isOnlineSimFlow = true;
 
@@ -3383,7 +3383,7 @@ async function handlePurchaseWithWallet(req, res) {
                     zipCode: orderMetadata.zip,
                     email: orderMetadata.activationEmail
                 },
-                instructions: "Payment Confirmed. Deemax is verifying your activation details."
+                instructions: "Payment Confirmed. DeemaxHub is verifying your activation details."
             };
         }
         else if (carrierName && mobileNumber) {
@@ -4071,7 +4071,7 @@ if (orderType === "rdp") {
     const htmlContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, sans-serif; max-width: 450px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff;">
             <div style="background: #0F54C6; padding: 15px; text-align: center;">
-                <img src="${APP_BASE_URL}/assets/logo.png" alt="Deemax" width="100">
+                <img src="${APP_BASE_URL}/assets/logo.png" alt="DeemaxHub" width="100">
             </div>
             
             <div style="padding: 20px;">
@@ -4104,14 +4104,14 @@ if (orderType === "rdp") {
             </div>
             
             <div style="background: #f8fafc; padding: 12px; text-align: center;">
-                <p style="font-size: 10px; color: #94a3b8; margin: 0;">Priority System Alert &bull; Deemax Admin</p>
+                <p style="font-size: 10px; color: #94a3b8; margin: 0;">Priority System Alert &bull; DeemaxHub Admin</p>
             </div>
         </div>
     `;
 
     try {
         await adminTransporter.sendMail({
-            from: mailFrom('Deemax Alert'),
+            from: mailFrom('DeemaxHub Alert'),
             to: process.env.ADMIN_EMAIL,
             subject: `🚨 ${rawOrderData.type.toUpperCase()}: ${rawOrderData.amount} from ${rawOrderData.email}`,
             html: htmlContent
@@ -4619,7 +4619,7 @@ else {
                 <td align="center" style="padding: 20px 0;">
                     <div style="font-family: 'Inter', Helvetica, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
                         <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-                            <img src="${APP_BASE_URL}/assets/logo.png" alt="Deemax" style="height: 24px; width: auto; display: block; margin: 0 auto;">
+                            <img src="${APP_BASE_URL}/assets/logo.png" alt="DeemaxHub" style="height: 24px; width: auto; display: block; margin: 0 auto;">
                         </div>
                         <div style="background-color: #0F54C6; color: white; padding: 35px 24px; text-align: center;">
                             <h2 style="margin: 0; font-size: 22px;">${headerTitle}</h2>
@@ -4627,7 +4627,7 @@ else {
                         </div>
                         <div style="padding: 24px; color: #344054; text-align: left;">
                             <p style="font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
-                                Hello, thank you for choosing <strong>Deemax</strong>. Your service details are provided below.
+                                Hello, thank you for choosing <strong>DeemaxHub</strong>. Your service details are provided below.
                             </p>
                             <div style="background: #F0F5FE; padding: 20px; border-radius: 12px; border: 1px solid #D1E0FF; margin-bottom: 24px;">
                                 <p style="margin: 0 0 10px 0; font-size: 10px; color: #0F54C6; font-weight: 800; text-transform: uppercase;">Service Order Info</p>
@@ -4640,7 +4640,7 @@ else {
                             </div>
                         </div>
                         <div style="background: #F9FAFB; padding: 20px; text-align: center; border-top: 1px solid #EAECF0;">
-                            <p style="font-size: 11px; color: #667085; margin: 0;">&copy; 2026 <strong>Deemax</strong>. All rights reserved.</p>
+                            <p style="font-size: 11px; color: #667085; margin: 0;">&copy; 2026 <strong>DeemaxHub</strong>. All rights reserved.</p>
                         </div>
                     </div>
                 </td>
@@ -4653,16 +4653,16 @@ const emailAttachments = [];
     if (safeReceiptUrl) {
         const extension = safeReceiptUrl.split('?')[0].split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'pdf'; // Handle query params
         emailAttachments.push({
-            filename: `Deemax_Receipt_${String(rawCredentials.confirmationNumber || 'Order').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60) || 'Order'}.${extension}`,
+            filename: `DeemaxHub_Receipt_${String(rawCredentials.confirmationNumber || 'Order').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60) || 'Order'}.${extension}`,
             path: safeReceiptUrl
         });
     }
 
     try {
         await transporter.sendMail({
-            from: mailFrom('Deemax Support'),
+            from: mailFrom('DeemaxHub Support'),
             to: userEmail,
-            subject: `${subject} - Deemax`,
+            subject: `${subject} - DeemaxHub`,
             html: htmlContent,
             attachments: emailAttachments // Physical file attachment
         });
@@ -4677,7 +4677,7 @@ const sendResetPasswordEmail = async (userEmail, resetLink, isAdmin = false) => 
 
     // Dynamic content based on account type
     const accountType = isAdmin ? "Admin Control Panel" : "User Account";
-    const subject = isAdmin ? "🔐 Urgent: Admin Password Reset" : "🔐 Reset Your Deemax Password";
+    const subject = isAdmin ? "🔐 Urgent: Admin Password Reset" : "🔐 Reset Your DeemaxHub Password";
     const headerTitle = isAdmin ? "Admin Security Update" : "Password Reset Request";
     const subHeader = `Security credentials for your ${accountType} are being updated.`;
 
@@ -4699,7 +4699,7 @@ const sendResetPasswordEmail = async (userEmail, resetLink, isAdmin = false) => 
                     <div style="font-family: 'Inter', Helvetica, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
                         
                         <div style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #f0f0f0;">
-                            <img src="${APP_BASE_URL}/assets/logo.png" alt="Deemax" style="height: 24px; width: auto; display: block; margin: 0 auto;">
+                            <img src="${APP_BASE_URL}/assets/logo.png" alt="DeemaxHub" style="height: 24px; width: auto; display: block; margin: 0 auto;">
                         </div>
 
                         <div style="background-color: ${isAdmin ? '#101828' : '#0F54C6'}; color: white; padding: 35px 24px; text-align: center;">
@@ -4728,7 +4728,7 @@ const sendResetPasswordEmail = async (userEmail, resetLink, isAdmin = false) => 
                         </div>
 
                         <div style="background: #F9FAFB; padding: 20px; text-align: center; border-top: 1px solid #EAECF0;">
-                            <p style="font-size: 11px; color: #667085; margin: 0;">&copy; 2026 <strong>Deemax</strong>. Secure Digital Services.</p>
+                            <p style="font-size: 11px; color: #667085; margin: 0;">&copy; 2026 <strong>DeemaxHub</strong>. Secure Digital Services.</p>
                         </div>
                     </div>
                 </td>
@@ -4738,7 +4738,7 @@ const sendResetPasswordEmail = async (userEmail, resetLink, isAdmin = false) => 
     </html>`;
 
     await transporter.sendMail({
-        from: mailFrom('Deemax Security'),
+        from: mailFrom('DeemaxHub Security'),
         to: userEmail,
         subject: subject,
         html: htmlContent

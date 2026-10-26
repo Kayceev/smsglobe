@@ -1,6 +1,6 @@
-Technical Documentation: Deemax Platform
+Technical Documentation: DeemaxHub Platform
 1. Project Overview
-System Name: Deemax Administrative & User Dashboard
+System Name: DeemaxHub Administrative & User Dashboard
 
 Lead Developer: Arogundade Oladipupo
 
