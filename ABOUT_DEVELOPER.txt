@@ -12,7 +12,7 @@ Systems Management: Advanced knowledge of eSIM management, VPN subscription logi
 Security Implementation: Skilled in implementing multi-factor authentication, including 4-digit PIN verification and token-based admin security (smsglobe_admin_token).
 
 3. The "Online Claiming Agent" Specialty
-As a bonafide Online Claiming Agent, Lawrence has developed a proprietary workflow for SMSGlobe that assists individuals in navigating the complexities of digital winnings and prize claims. This unique intersection of legal-tech and software development allows for:
+As a bonafide Online Claiming Agent, Lawrence has developed a proprietary workflow for Deemax that assists individuals in navigating the complexities of digital winnings and prize claims. This unique intersection of legal-tech and software development allows for:
 
 Automated verification of claim eligibility.
 
@@ -20,8 +20,8 @@ Secure processing of winner documentation.
 
 Integration of secure digital service rewards (VPNs, RDPs, and eSIMs).
 
-4. Notable Project: SMSGlobe Platform
-Lawrence is the lead architect and designer of SMSGlobe.net, a multi-module platform featuring:
+4. Notable Project: Deemax Platform
+Lawrence is the lead architect and designer of Deemax.net, a multi-module platform featuring:
 
 The SMSAdmin Suite: A proprietary dashboard for managing global service activations and transaction histories.
 

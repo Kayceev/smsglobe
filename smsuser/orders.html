@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History | Deemax</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- SheetJS for Excel Export (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            blueHover: '#0A3F99',
+                            orange: '#F9861E',
+                            red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { 
+                        sans: ['Outfit', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .active-scale:active { transform: scale(0.98); }
+
+    </style>
+</head>
+<body class="bg-brand-background min-h-screen flex font-sans text-brand-midText antialiased">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/30 z-40 hidden lg:hidden backdrop-blur-xs"></div>
+
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-brand-border z-50 transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col shadow-sm">
+        <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto">
+            </div>
+            <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+        </div>
+        
+        <nav class="flex-grow p-4 space-y-1 overflow-y-auto no-scrollbar">
+            <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+            <a href="/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/virtual-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                <span>Buy Number</span>
+            </a>
+            <a href="/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                <span>Buy Accts &amp; VPN</span>
+            </a>
+            <a href="/fund-wallet" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                <span>Add Money</span>
+            </a>
+            <a href="/orders" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Order History</span>
+            </a>
+            <a href="/support" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 15v-3a8 8 0 0116 0v3"></path><rect x="3" y="13" width="4" height="6" rx="2" stroke-width="1.75"></rect><rect x="17" y="13" width="4" height="6" rx="2" stroke-width="1.75"></rect><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 19c0 1.7-1.6 2.5-4 2.5h-1.5"></path></svg>
+                <span>Help &amp; Support</span>
+            </a>
+            <a href="/profile" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span>Profile</span>
+            </a>
+            <details class="group">
+                <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                    Others
+                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+            <a href="/gifts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
+                <span>Send Gifts</span>
+            </a>
+            <a href="/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span>VPN</span>
+            </a>
+            <a href="/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                <span>Proxies</span>
+            </a>
+            <a href="/esim-refill" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>eSIMs Refill</span>
+            </a>
+            <a href="/esim-activation" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                <span>eSIMs Activation</span>
+            </a>
+            <a href="/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span>RDP</span>
+            </a>
+            </details>
+        </nav>
+
+        <div class="p-4 border-t border-brand-border flex items-center gap-2">
+            <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <span>Log Out</span>
+            </button>
+            <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <span class="theme-switch-knob">
+                    <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                    <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-grow lg:ml-64 flex flex-col min-h-screen min-w-0">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button id="openSidebar" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">Order History</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Wallet Balance (tap to top up) -->
+                <a href="/fund-wallet" class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText hover:border-brand-blue transition-colors">
+                    <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <span id="headerBalance">₦0</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Content View -->
+        <main class="p-4 md:p-6 max-w-[1400px] w-full mx-auto space-y-5 flex-grow flex flex-col">
+
+            <!-- Page Title -->
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-brand-darkText tracking-tight">Order History</h2>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                <div class="bg-white rounded-xl border border-brand-border p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 text-brand-blue flex items-center justify-center shrink-0">
+                        <i data-lucide="shopping-bag" class="w-[18px] h-[18px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-brand-lightText uppercase tracking-widest">Total Orders</p>
+                        <h3 id="totalOrdersCount" class="text-xl sm:text-2xl font-extrabold text-brand-darkText tabular-nums truncate">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-brand-border p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="wallet" class="w-[18px] h-[18px]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-brand-lightText uppercase tracking-widest">Total Spent</p>
+                        <h3 id="totalSpentAmount" class="text-xl sm:text-2xl font-extrabold text-brand-darkText tabular-nums truncate">₦0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <section class="bg-white rounded-2xl border border-brand-border shadow-xl shadow-blue-900/5 p-4 sm:p-6 flex-grow flex flex-col">
+
+                <!-- Card Header: Title & Export Actions -->
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <h3 class="font-bold text-base sm:text-lg text-brand-darkText truncate">
+                        Orders <span id="ordersCountLabel" class="text-brand-lightText font-normal">(0)</span>
+                    </h3>
+
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <!-- Export CSV -->
+                        <button onclick="exportData('csv')" class="h-9 flex items-center gap-1.5 px-3 bg-white border border-brand-border text-brand-midText hover:bg-gray-50 rounded-xl text-xs font-semibold transition-colors active-scale">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                            <span>CSV</span>
+                        </button>
+
+                        <!-- Export XLSX (SheetJS) -->
+                        <button onclick="exportData('xlsx')" class="h-9 flex items-center gap-1.5 px-3 bg-brand-red text-white hover:bg-red-700 rounded-xl text-xs font-bold transition-colors active-scale shadow-lg shadow-red-200">
+                            <i data-lucide="sheet" class="w-4 h-4"></i>
+                            <span>Excel</span>
+                        </button>
+
+                        <button onclick="initHistory()" aria-label="Refresh" class="h-9 w-9 flex items-center justify-center bg-white border border-brand-border text-brand-midText hover:bg-gray-50 rounded-xl transition-colors active-scale">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <input type="text" id="orderSearch" placeholder="Search orders, numbers, codes..."
+                            class="w-full h-10 bg-white border border-brand-border rounded-xl pl-9 pr-3 text-sm text-brand-darkText placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 sm:w-[340px] shrink-0">
+                        <!-- Status Filter -->
+                        <select id="statusFilter" class="h-10 w-full min-w-0 bg-white border border-brand-border rounded-xl px-3 text-sm font-medium text-brand-midText focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue">
+                            <option value="ALL">All Statuses</option>
+                            <option value="successful">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="cancelled">Cancelled / Failed</option>
+                        </select>
+
+                        <!-- Date Range Filter -->
+                        <select id="dateRangeFilter" class="h-10 w-full min-w-0 bg-white border border-brand-border rounded-xl px-3 text-sm font-medium text-brand-midText focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue">
+                            <option value="ALL">All Time</option>
+                            <option value="7days">Last 7 Days</option>
+                            <option value="30days">Last 30 Days</option>
+                            <option value="thisMonth">This Month</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mobile: Card List -->
+                <ul id="cardViewContainer" class="md:hidden space-y-3"></ul>
+
+                <!-- Tablet/Desktop: Table -->
+                <div id="tableViewContainer" class="hidden md:block overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+                    <table class="w-full text-sm text-left min-w-[860px]">
+                        <thead>
+                            <tr class="text-[10px] font-bold text-brand-lightText uppercase tracking-widest">
+                                <th class="py-2.5 pr-4 font-bold">Order ID</th>
+                                <th class="py-2.5 pr-4 font-bold">Product</th>
+                                <th class="py-2.5 pr-4 font-bold">Number</th>
+                                <th class="py-2.5 pr-4 font-bold">Code</th>
+                                <th class="py-2.5 pr-4 font-bold">Status</th>
+                                <th class="py-2.5 pr-4 font-bold">Cost</th>
+                                <th class="py-2.5 pr-4 font-bold">Time</th>
+                                <th class="py-2.5 font-bold text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody" class="text-brand-midText"></tbody>
+                    </table>
+                </div>
+
+                <!-- Empty / Error State -->
+                <div id="historyMessage" class="hidden py-14 text-center text-sm text-brand-lightText"></div>
+
+                <!-- Pagination -->
+                <div id="paginationBar" class="mt-auto pt-4 border-t border-brand-border flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-brand-lightText">
+                    <div class="flex items-center gap-2">
+                        <span>Show</span>
+                        <select id="itemsPerPage" onchange="changePageSize(this.value)" class="bg-white border border-brand-border rounded-lg px-2 py-1 text-xs font-medium text-brand-darkText focus:outline-none">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span id="paginationSummary">0 of 0</span>
+                    </div>
+                    <div id="paginationControls" class="flex items-center gap-1"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="orderModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-brand-darkText/40 backdrop-blur-xs" onclick="closeOrderModal()"></div>
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative z-10 overflow-hidden border border-brand-border flex flex-col max-h-[90vh]">
+            
+            <div class="p-4 border-b border-brand-border flex justify-between items-center bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-brand-blue/10 text-brand-blue flex items-center justify-center">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-bold text-brand-darkText text-sm uppercase tracking-tight">Order Receipt</h3>
+                </div>
+                <button onclick="closeOrderModal()" class="text-brand-lightText hover:text-brand-darkText p-1 rounded-lg hover:bg-gray-200/50">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="p-5 space-y-4 overflow-y-auto no-scrollbar flex-grow">
+                <div class="grid grid-cols-2 gap-4 bg-gray-50/70 p-3 rounded-xl border border-brand-border">
+                    <div>
+                        <p class="text-[9px] font-bold text-brand-lightText uppercase">Product</p>
+                        <p id="modalProduct" class="text-xs font-bold text-brand-darkText mt-0.5">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-bold text-brand-lightText uppercase">Transaction ID</p>
+                        <p id="modalID" class="text-[10px] font-mono text-brand-midText mt-0.5 break-all select-all">-</p>
+                    </div>
+                </div>
+
+                <div id="modalDynamicDetails" class="space-y-2.5 border-t border-brand-border pt-3">
+                </div>
+
+                <div class="p-3 bg-brand-background rounded-xl border border-brand-blue/10">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs font-medium text-brand-midText">Amount Paid</span>
+                        <span id="modalAmount" class="text-base font-extrabold text-brand-blue">-</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-medium text-brand-midText">Payment Method</span>
+                        <span id="modalPayment" class="text-[9px] font-bold px-2 py-0.5 bg-white rounded border border-brand-border uppercase text-brand-darkText">-</span>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[9px] font-bold text-brand-lightText uppercase mb-1.5">Proof of Service / Delivery Attachment</p>
+                    <div id="receiptContainer" class="rounded-xl border-2 border-dashed border-brand-border bg-gray-50 flex flex-col items-center justify-center p-4 min-h-[140px]">
+                        <p id="noReceiptMsg" class="text-xs text-brand-lightText">No attachment uploaded yet.</p>
+                        <img id="receiptImg" src="" alt="Admin Receipt" class="hidden rounded-lg w-full h-auto shadow-sm max-h-[250px] object-contain">
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gray-50 border-t border-brand-border flex gap-2 items-center">
+                <button onclick="closeOrderModal()" class="flex-1 py-2 bg-white border border-brand-border text-brand-darkText rounded-xl text-xs font-bold hover:bg-gray-100 active-scale transition-colors">Close</button>
+                <div id="modalActionContainer" class="flex-1 flex gap-2"></div>
+                <button id="downloadReceiptBtn" class="flex-1 py-2 bg-brand-blue text-white rounded-xl text-xs font-bold hover:bg-brand-blueHover active-scale transition-colors hidden">Download Proof</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+
+        // Application State
+        let rawOrdersData = [];
+        let filteredOrdersData = [];
+        let currentPage = 1;
+        let itemsPerPage = 25;
+
+        // Display names for each Order.productType
+        const PRODUCT_LABELS = {
+            SmsNumber: 'Virtual Number',
+            RentedNumber: 'Rented Number',
+            VPN: 'VPN',
+            Proxy: 'Proxy',
+            Account: 'Account',
+            eSIM: 'eSIM',
+            eSIM_Refill: 'eSIM Refill',
+            eSIM_Activation: 'eSIM Activation',
+            RDP: 'RDP'
+        };
+
+        // Status badge colours (same palette as the rest of the portal)
+        const STATUS_STYLES = {
+            completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            successful: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            pending: 'bg-amber-50 text-amber-700 border-amber-200',
+            processing: 'bg-blue-50 text-blue-700 border-blue-200',
+            failed: 'bg-rose-50 text-rose-700 border-rose-200',
+            cancelled: 'bg-gray-100 text-gray-600 border-gray-200'
+        };
+
+        // Order details come from users, admins and suppliers, so every value is escaped before display
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
+        function refreshIcons() {
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // --- 1. Order Field Helpers ---
+        const productLabel = order => PRODUCT_LABELS[order.productType] || String(order.productType || 'Service').replace(/_/g, ' ');
+        const isSmsOrder = order => ['SmsNumber', 'RentedNumber'].includes(order.productType);
+        const orderStatus = order => (order.status || 'pending').toLowerCase();
+        const orderRef = order => order.paymentReference || order._id || '';
+        const shortOrderId = order => String(order._id || '').slice(-8).toUpperCase();
+        const orderNumber = order => order.targetNumber || order.target?.number || '';
+        const orderCode = order => order.smsCode || '';
+        const canCancel = order => isSmsOrder(order) && orderStatus(order) === 'pending' && !order.smsCode;
+
+        function productName(order) {
+            if (isSmsOrder(order)) return order.metadata?.serviceName || order.serviceName || order.planName || 'Virtual Number';
+            return order.nodeName || order.planName || productLabel(order);
+        }
+
+        function formatDateTime(value) {
+            if (!value) return 'N/A';
+            return new Date(value).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        const formatNaira = amount => `₦${Number(amount || 0).toLocaleString()}`;
+
+        function statusBadge(order) {
+            const status = orderStatus(order);
+            const label = order.refundedAt && ['cancelled', 'failed'].includes(status) ? 'refunded' : status;
+            return `<span class="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md border ${STATUS_STYLES[status] || STATUS_STYLES.cancelled}">${escapeHtml(label)}</span>`;
+        }
+
+        // Copyable value: clicking anything with data-copy copies it (see the delegated listener at the bottom)
+        function copyButton(value, label, extraClass = '') {
+            if (!value) return '<span class="text-gray-400">—</span>';
+            return `<button type="button" data-copy="${escapeHtml(value)}" data-copy-label="${escapeHtml(label)}" title="Click to copy"
+                        class="font-mono inline-flex items-center gap-1.5 hover:text-brand-blue break-all text-left ${extraClass}">
+                        ${escapeHtml(value)} <i data-lucide="copy" class="w-3 h-3 opacity-60 shrink-0"></i>
+                    </button>`;
+        }
+
+        function orderIdChip(order) {
+            return `<button type="button" data-copy="${escapeHtml(orderRef(order))}" data-copy-label="Order reference" title="Click to copy full reference"
+                        class="font-mono text-[11px] px-2 py-0.5 rounded-md border border-brand-border bg-gray-50 hover:bg-gray-100 text-brand-darkText">
+                        #${escapeHtml(shortOrderId(order))}
+                    </button>`;
+        }
+
+        // --- 2. Load Orders ---
+        async function initHistory() {
+            const token = localStorage.getItem('userToken');
+            if (!token) return logout();
+
+            showLoadingState();
+
+            try {
+                const ordersRes = await fetch(`${API_BASE_URL}/user-orders`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (ordersRes.status === 401) return logout();
+                const data = await ordersRes.json();
+
+                if (!ordersRes.ok || !Array.isArray(data)) {
+                    throw new Error(data?.message || "Failed to retrieve order history");
+                }
+                rawOrdersData = data;
+            } catch (err) {
+                console.error("History Load Error:", err);
+                rawOrdersData = [];
+                showMessage(`Couldn't load your orders. <button onclick="initHistory()" class="text-brand-blue font-semibold underline underline-offset-2">Try again</button>`);
+                updateSummaryCards();
+                return;
+            }
+
+            updateSummaryCards();
+            applyFilters();
+        }
+
+        // Skeleton rows while the orders load
+        function showLoadingState() {
+            const skeletonBar = width => `<div class="h-3 ${width} bg-gray-100 rounded animate-pulse"></div>`;
+            document.getElementById('historyMessage').classList.add('hidden');
+            document.getElementById('tableViewContainer').className = 'hidden md:block overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6';
+            document.getElementById('cardViewContainer').classList.remove('hidden');
+            document.getElementById('paginationBar').classList.add('hidden');
+
+            document.getElementById('historyBody').innerHTML = Array.from({ length: 5 }, () => `
+                <tr class="border-t border-brand-border">
+                    ${['w-16', 'w-28', 'w-28', 'w-14', 'w-16', 'w-14', 'w-24', 'w-12'].map(w => `<td class="py-3.5 pr-4">${skeletonBar(w)}</td>`).join('')}
+                </tr>`).join('');
+
+            document.getElementById('cardViewContainer').innerHTML = Array.from({ length: 3 }, () => `
+                <li class="rounded-xl border border-brand-border p-3.5 space-y-3">
+                    <div class="flex justify-between">${skeletonBar('w-16')}${skeletonBar('w-14')}</div>
+                    ${skeletonBar('w-32')}
+                    <div class="grid grid-cols-2 gap-3">${skeletonBar('w-24')}${skeletonBar('w-16')}</div>
+                </li>`).join('');
+        }
+
+        // Replaces the list with a single message (empty result or load error)
+        function showMessage(html) {
+            document.getElementById('tableViewContainer').className = 'hidden';
+            document.getElementById('cardViewContainer').classList.add('hidden');
+            const message = document.getElementById('historyMessage');
+            message.innerHTML = html;
+            message.classList.remove('hidden');
+            document.getElementById('paginationBar').classList.add('hidden');
+            document.getElementById('ordersCountLabel').innerText = `(0)`;
+        }
+
+        // --- 3. Search, Status & Date Filters ---
+        function applyFilters() {
+            const searchTerm = (document.getElementById('orderSearch')?.value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('statusFilter')?.value || 'ALL';
+            const dateRange = document.getElementById('dateRangeFilter')?.value || 'ALL';
+            const now = new Date();
+
+            filteredOrdersData = rawOrdersData.filter(order => {
+                const searchable = [orderRef(order), shortOrderId(order), productLabel(order), productName(order), orderNumber(order), orderCode(order), orderStatus(order)]
+                    .join(' ').toLowerCase();
+                const matchesSearch = !searchTerm || searchable.includes(searchTerm);
+
+                const status = orderStatus(order);
+                let matchesStatus = true;
+                if (statusFilter === 'successful') matchesStatus = ['successful', 'completed'].includes(status);
+                else if (statusFilter === 'pending') matchesStatus = ['pending', 'processing'].includes(status);
+                else if (statusFilter === 'cancelled') matchesStatus = ['cancelled', 'failed'].includes(status);
+
+                let matchesDate = true;
+                if (dateRange !== 'ALL' && order.createdAt) {
+                    const orderDate = new Date(order.createdAt);
+                    const diffDays = (now - orderDate) / (1000 * 3600 * 24);
+                    if (dateRange === '7days') matchesDate = diffDays <= 7;
+                    else if (dateRange === '30days') matchesDate = diffDays <= 30;
+                    else if (dateRange === 'thisMonth') matchesDate = orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+                }
+
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+
+            // Newest first
+            filteredOrdersData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+            currentPage = 1;
+            renderCurrentView();
+        }
+
+        // Total orders and spend leave out cancelled, failed and refunded orders
+        function updateSummaryCards() {
+            const paidOrders = rawOrdersData.filter(o => !['cancelled', 'failed'].includes(orderStatus(o)) && !o.refundedAt);
+            const spentSum = paidOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+            document.getElementById('totalOrdersCount').innerText = paidOrders.length.toLocaleString();
+            document.getElementById('totalSpentAmount').innerText = formatNaira(spentSum);
+        }
+
+        // --- 4. Render Table (md and up) & Cards (mobile) ---
+        function renderCurrentView() {
+            const total = filteredOrdersData.length;
+            const searchTerm = (document.getElementById('orderSearch')?.value || '').trim();
+
+            if (total === 0) {
+                const filtersActive = searchTerm || document.getElementById('statusFilter').value !== 'ALL' || document.getElementById('dateRangeFilter').value !== 'ALL';
+                showMessage(filtersActive
+                    ? (searchTerm ? `No orders matching "${escapeHtml(searchTerm)}".` : 'No orders match these filters.')
+                    : `No orders yet. <a href="/virtual-numbers" class="text-brand-blue font-semibold hover:underline">Buy your first number →</a>`);
+                refreshIcons();
+                return;
+            }
+
+            document.getElementById('historyMessage').classList.add('hidden');
+            document.getElementById('tableViewContainer').className = 'hidden md:block overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6';
+            document.getElementById('cardViewContainer').classList.remove('hidden');
+            document.getElementById('paginationBar').classList.remove('hidden');
+            document.getElementById('ordersCountLabel').innerText = `(${total.toLocaleString()}${total !== rawOrdersData.length ? ` of ${rawOrdersData.length.toLocaleString()}` : ''})`;
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const pageData = filteredOrdersData.slice(startIndex, startIndex + itemsPerPage);
+
+            renderTableData(pageData);
+            renderCardData(pageData);
+            renderPaginationControls();
+            refreshIcons();
+        }
+
+        function actionButtons(order, compact) {
+            const id = escapeHtml(order._id);
+            const size = compact ? 'px-2.5 py-1 text-[11px] rounded-lg' : 'flex-1 py-2 text-xs rounded-lg';
+            return `
+                <button onclick="openOrderDetails('${id}')" class="${size} bg-brand-blue/10 hover:bg-brand-blue text-brand-blue hover:text-white font-bold transition-all active-scale">View</button>
+                ${canCancel(order) ? `<button onclick="cancelActiveOrder('${id}')" class="${size} bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold transition-all active-scale">Cancel</button>` : ''}`;
+        }
+
+        function renderTableData(pageData) {
+            document.getElementById('historyBody').innerHTML = pageData.map(order => `
+                <tr class="border-t border-brand-border hover:bg-gray-50/50 transition-colors">
+                    <td class="py-3 pr-4 whitespace-nowrap">${orderIdChip(order)}</td>
+                    <td class="py-3 pr-4">
+                        <div class="font-semibold text-brand-darkText truncate max-w-[220px]">${escapeHtml(productName(order))}</div>
+                        <div class="text-[11px] text-brand-lightText">${escapeHtml(productLabel(order))}</div>
+                    </td>
+                    <td class="py-3 pr-4 whitespace-nowrap">${copyButton(orderNumber(order), 'Phone number')}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap">${copyButton(orderCode(order), 'Code', 'font-bold text-brand-darkText')}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap">${statusBadge(order)}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap font-semibold text-brand-darkText tabular-nums">${formatNaira(order.amount)}</td>
+                    <td class="py-3 pr-4 whitespace-nowrap text-brand-lightText text-xs">${formatDateTime(order.createdAt)}</td>
+                    <td class="py-3 whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1.5">${actionButtons(order, true)}</div>
+                    </td>
+                </tr>`).join('');
+        }
+
+        function renderCardData(pageData) {
+            const cell = (label, content, extraClass = '') => `
+                <div class="min-w-0 ${extraClass}">
+                    <dt class="text-[10px] font-bold text-brand-lightText uppercase tracking-widest">${label}</dt>
+                    <dd class="text-brand-midText mt-0.5">${content}</dd>
+                </div>`;
+
+            document.getElementById('cardViewContainer').innerHTML = pageData.map(order => `
+                <li class="rounded-xl border border-brand-border p-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        ${orderIdChip(order)}
+                        ${statusBadge(order)}
+                    </div>
+                    <div class="mt-2">
+                        <p class="font-bold text-brand-darkText text-sm">${escapeHtml(productName(order))}</p>
+                        <p class="text-[11px] text-brand-lightText">${escapeHtml(productLabel(order))}</p>
+                    </div>
+                    <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                        ${orderNumber(order) || orderCode(order) ? `
+                            ${cell('Number', copyButton(orderNumber(order), 'Phone number'))}
+                            ${cell('Code', copyButton(orderCode(order), 'Code', 'font-bold text-brand-darkText'))}` : ''}
+                        ${cell('Cost', `<span class="font-semibold text-brand-darkText tabular-nums">${formatNaira(order.amount)}</span>`)}
+                        ${cell('Time', `<span class="text-xs text-brand-lightText">${formatDateTime(order.createdAt)}</span>`)}
+                    </dl>
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-brand-border">${actionButtons(order, false)}</div>
+                </li>`).join('');
+        }
+
+        // --- 5. Pagination ---
+        function renderPaginationControls() {
+            const total = filteredOrdersData.length;
+            const totalPages = Math.ceil(total / itemsPerPage) || 1;
+            const startItem = total === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, total);
+
+            document.getElementById('paginationSummary').innerText = `${startItem}–${endItem} of ${total}`;
+
+            const navButton = (page, icon, disabled) => `
+                <button onclick="goToPage(${page})" ${disabled ? 'disabled' : ''} class="p-1.5 rounded-lg border border-brand-border bg-white text-brand-darkText hover:bg-gray-50 ${disabled ? 'opacity-40 cursor-not-allowed' : ''}">
+                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                </button>`;
+
+            let html = navButton(currentPage - 1, 'chevron-left', currentPage === 1);
+            for (let page = 1; page <= totalPages; page++) {
+                if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                    html += `<button onclick="goToPage(${page})" class="min-w-[32px] px-2 py-1 text-xs font-bold rounded-lg ${currentPage === page ? 'bg-brand-blue text-white' : 'bg-white border border-brand-border text-brand-darkText hover:bg-gray-50'}">${page}</button>`;
+                } else if (page === currentPage - 2 || page === currentPage + 2) {
+                    html += `<span class="px-1 text-gray-400">…</span>`;
+                }
+            }
+            html += navButton(currentPage + 1, 'chevron-right', currentPage === totalPages);
+
+            document.getElementById('paginationControls').innerHTML = html;
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredOrdersData.length / itemsPerPage) || 1;
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderCurrentView();
+        }
+
+        function changePageSize(size) {
+            itemsPerPage = Number(size);
+            currentPage = 1;
+            renderCurrentView();
+        }
+
+        // --- 6. Copy To Clipboard ---
+        async function copyText(text, label = 'Text') {
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (err) {
+                // Fallback for browsers that block the async clipboard API
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+            }
+            Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: `${label} copied`, showConfirmButton: false, timer: 1500 });
+        }
+
+        // --- 7. Export to Excel (.xlsx via SheetJS) or CSV ---
+        function exportData(format) {
+            if (filteredOrdersData.length === 0) {
+                Swal.fire({ icon: 'info', title: 'No Data', text: 'No records available to export.' });
+                return;
+            }
+
+            const exportRows = filteredOrdersData.map((order, idx) => ({
+                '#': idx + 1,
+                'Order Reference': orderRef(order),
+                'Product Category': productLabel(order),
+                'Product Item': productName(order),
+                'Number': orderNumber(order),
+                'Code': orderCode(order),
+                'Amount (NGN)': Number(order.amount || 0),
+                'Payment Method': order.bonusBalanceUsed > 0 ? (order.mainBalanceUsed > 0 ? 'Wallet + Bonus' : 'Bonus') : 'Wallet',
+                'Status': orderStatus(order),
+                'Date Created': formatDateTime(order.createdAt)
+            }));
+            const fileName = `Deemax_Order_History_${new Date().toISOString().slice(0, 10)}`;
+
+            if (format === 'xlsx' && window.XLSX) {
+                const worksheet = XLSX.utils.json_to_sheet(exportRows);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Order History");
+                XLSX.writeFile(workbook, `${fileName}.xlsx`);
+                return;
+            }
+
+            // CSV (also the fallback when SheetJS didn't load); quotes are doubled so commas and quotes survive
+            const csvCell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+            const csvContent = [Object.keys(exportRows[0]), ...exportRows.map(row => Object.values(row))]
+                .map(row => row.map(csvCell).join(','))
+                .join('\n');
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
+            link.download = `${fileName}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        // --- 8. Cancel A Pending SMS Number ---
+        window.cancelActiveOrder = async function(orderId) {
+            const confirmResult = await Swal.fire({
+                title: 'Cancel Number & Get Refund?',
+                text: "If you haven't received your code, cancelling will return your funds back to your wallet instantly.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#0F54C6',
+                confirmButtonText: 'Yes, Cancel & Refund!'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
+            try {
+                Swal.fire({ title: 'Processing refund...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                const token = localStorage.getItem('userToken');
+                const response = await fetch(`${API_BASE_URL}/cancel-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ id: orderId })
+                });
+                const data = await response.json();
+
+                Swal.close();
+
+                if (response.status === 401) return logout();
+
+                if (data && data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Refund Successful!',
+                        text: data.message,
+                        timer: 2500
+                    }).then(() => {
+                        closeOrderModal();
+                        initHistory();
+                        loadHeaderBalance();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cancellation Failed',
+                        text: (data && data.message) || 'Could not cancel the order.'
+                    });
+                }
+            } catch (err) {
+                console.error("Cancel Order Error:", err);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Network error connecting to server.' });
+            }
+        };
+
+        // --- 9. Order Details Modal ---
+        function openOrderDetails(orderId) {
+            const order = rawOrdersData.find(o => o._id === orderId);
+            if (!order) return;
+            const modal = document.getElementById('orderModal');
+
+            document.getElementById('modalProduct').innerText = `${productLabel(order)} - ${productName(order)}`;
+            document.getElementById('modalID').innerText = orderRef(order);
+            document.getElementById('modalAmount').innerText = formatNaira(order.amount);
+            document.getElementById('modalPayment').innerText = order.bonusBalanceUsed > 0 ? 'Bonus Wallet' : 'Main Wallet';
+
+            const detailsContainer = document.getElementById('modalDynamicDetails');
+            let dynamicHtml = '';
+
+            const addRow = (label, value) => {
+                if (value === undefined || value === null || value === "") return;
+                dynamicHtml += `
+                    <div class="flex justify-between items-start gap-4 py-1 border-b border-gray-100 last:border-none">
+                        <span class="text-[10px] font-bold text-brand-lightText uppercase shrink-0">${escapeHtml(label)}</span>
+                        <span class="text-[11px] font-semibold text-brand-darkText text-right break-all select-all">${escapeHtml(value)}</span>
+                    </div>`;
+            };
+
+            if (isSmsOrder(order)) {
+                addRow('Service', productName(order));
+                addRow('Country', order.metadata?.countryName || order.country);
+                addRow('Phone Number', orderNumber(order));
+                addRow('SMS Code', order.smsCode);
+                addRow('Full Message', order.fullMessage);
+            }
+            else if (order.productType === 'VPN') {
+                addRow('Service Provider', order.nodeName);
+                addRow('Plan Duration', order.planName);
+                if (order.vpnCredentials) {
+                    addRow('VPN Username', order.vpnCredentials.username);
+                    addRow('VPN Password', order.vpnCredentials.password);
+                    addRow('Config/Link', order.vpnCredentials.configUrl);
+                }
+            }
+            else if (order.productType === 'eSIM_Refill' || order.productType === 'eSIM_Activation') {
+                addRow('Network', order.nodeName);
+                addRow('Phone Number', order.targetNumber);
+                addRow('Country', order.country);
+                addRow('Refill Value', order.planName);
+            }
+            else if (order.productType === 'RDP') {
+                addRow('Server Location', order.nodeName);
+                addRow('IP Address', order.ipAddress || order.targetNumber);
+                addRow('Access Port', order.port);
+                if (order.extraCPU > 0 || order.extraStorage > 0) {
+                    addRow('Resources', `+${order.extraCPU} Core / +${order.extraStorage}GB SSD`);
+                }
+            }
+            else if (order.productType === 'Proxy') {
+                addRow('Proxy Type', order.nodeName);
+                addRow('Target/IP', order.targetNumber);
+                addRow('Region', order.country);
+            }
+            else if (order.productType === 'Account') {
+                addRow('Product', order.nodeName);
+                addRow('Category', order.planName);
+                const accountKeys = order.metadata?.accountKeys || String(order.activationCode || '').split('\n').filter(Boolean);
+                accountKeys.forEach((key, i) => addRow(`Account #${i + 1}`, key));
+            }
+
+            if (order.activationCode && order.productType !== 'Account') addRow('Activation Code', order.activationCode);
+            addRow('Date', formatDateTime(order.createdAt));
+            if (order.adminNote) {
+                dynamicHtml += `
+                    <div class="mt-2 p-2.5 bg-orange-50 text-orange-800 text-[11px] rounded-xl border border-orange-200 italic">
+                        <b class="uppercase text-[9px] block not-italic mb-0.5">Admin Note:</b>
+                        ${escapeHtml(order.adminNote)}
+                    </div>`;
+            }
+
+            detailsContainer.innerHTML = dynamicHtml || '<p class="text-[11px] text-gray-400 text-center py-2">Standard transaction details.</p>';
+
+            const receiptImg = document.getElementById('receiptImg');
+            const noReceiptMsg = document.getElementById('noReceiptMsg');
+            const downloadBtn = document.getElementById('downloadReceiptBtn');
+            const imageUrl = order.receiptUrl || order.adminImage;
+
+            if (imageUrl) {
+                receiptImg.src = imageUrl;
+                receiptImg.classList.remove('hidden');
+                noReceiptMsg.classList.add('hidden');
+                downloadBtn.classList.remove('hidden');
+                downloadBtn.onclick = () => window.open(imageUrl, '_blank');
+            } else {
+                receiptImg.classList.add('hidden');
+                noReceiptMsg.classList.remove('hidden');
+                downloadBtn.classList.add('hidden');
+            }
+
+            // Cancellation Button Logic in Modal
+            const modalActionContainer = document.getElementById('modalActionContainer');
+            modalActionContainer.innerHTML = canCancel(order) ? `
+                <button onclick="cancelActiveOrder('${escapeHtml(order._id)}')" class="w-full py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 rounded-xl text-xs font-bold transition-all active-scale">
+                    Cancel & Refund
+                </button>` : '';
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            refreshIcons();
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function logout() {
+            localStorage.removeItem('userToken');
+            window.location.href = '/login';
+        }
+
+        // --- Header Wallet Balance ---
+        async function loadHeaderBalance() {
+            const token = localStorage.getItem('userToken');
+            if (!token) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/user-profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                const user = data.user || data;
+                if (res.ok && user.balance !== undefined) {
+                    document.getElementById('headerBalance').innerText = formatNaira(user.balance);
+                }
+            } catch (err) {
+                console.error("Header Balance Error:", err);
+            }
+        }
+        loadHeaderBalance();
+
+        // Attach Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleSidebar = () => { sidebar.classList.toggle('-translate-x-full'); overlay.classList.toggle('hidden'); };
+
+            document.getElementById('openSidebar')?.addEventListener('click', toggleSidebar);
+            document.getElementById('closeSidebar')?.addEventListener('click', toggleSidebar);
+            overlay?.addEventListener('click', toggleSidebar);
+
+            // Filter Event Listeners
+            document.getElementById('orderSearch')?.addEventListener('input', applyFilters);
+            document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+            document.getElementById('dateRangeFilter')?.addEventListener('change', applyFilters);
+
+            // One listener for every copyable value in the table and cards
+            document.addEventListener('click', e => {
+                const target = e.target.closest('[data-copy]');
+                if (target) copyText(target.dataset.copy, target.dataset.copyLabel);
+            });
+
+            refreshIcons();
+            initHistory();
+        });
+    </script>
+</body>
+</html>

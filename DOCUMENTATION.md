@@ -1,6 +1,6 @@
-Technical Documentation: SMSGlobe Platform
+Technical Documentation: Deemax Platform
 1. Project Overview
-System Name: SMSGlobe Administrative & User Dashboard
+System Name: Deemax Administrative & User Dashboard
 
 Lead Developer: Arogundade Oladipupo
 
@@ -12,7 +12,7 @@ Hosting Provider: Vercel (Production Environment)
 The project is structured to separate administrative logic from the client-side experience while maintaining a unified API layer.
 
 Core Files (Root)
-index.html: The main landing page and entry point for smsglobe.net.
+index.html: The main landing page and entry point for deemaxhub.com.
 
 style.css: Global stylesheet containing custom Tailwind utilities and UI branding.
 
@@ -21,9 +21,9 @@ api.js: Centralized backend logic handling database interactions, payment verifi
 vercel.json: Routing configuration for clean URLs and serverless function mapping.
 
 Subdirectories
-/smsadmin: Contains the administrative suite, including sms_dashboard.html, esims_activation.html, and transaction_history.html.
+/smsadmin: Contains the administrative suite, including dashboard.html, esim-activations.html, and transactions.html.
 
-/smsuser: Contains the client dashboard, including user_dashboard.html, topup.html, and user_profile.html.
+/smsuser: Contains the client dashboard, including dashboard.html, fund-wallet.html, and profile.html.
 
 /assets: Storage for images, icons, and branding materials used across the platform.
 
@@ -31,7 +31,7 @@ Subdirectories
 Routing & Clean URLs
 The platform utilizes Vercel's rewrite engine to provide a professional user experience.
 
-Requests to /smsuser/dashboard are internally mapped to /smsuser/user_dashboard.html.
+Requests to /smsuser/dashboard are internally mapped to /smsuser/dashboard.html.
 
 Requests to /api/* are directed to the api.js serverless function.
 

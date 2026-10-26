@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 
 # Block bots from seeing your admin folder (optional but recommended)
+Disallow: /admin/
 Disallow: /smsadmin/
 
-Sitemap: https://smsglobe.net/sitemap.xml
+Sitemap: https://www.deemaxhub.com/sitemap.xml

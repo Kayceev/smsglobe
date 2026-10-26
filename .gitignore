@@ -23,3 +23,15 @@ Thumbs.db
 
 tailwind.exe
 tailwind.exe.exe
+
+# Claude Code instructions (local only)
+CLAUDE.md
+
+# Local Claude Code tooling
+.claude/
+
+# Local database backups (contain user data)
+backups/
+
+.env*
+!.env.example

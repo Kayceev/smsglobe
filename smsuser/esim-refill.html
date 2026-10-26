@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <title>eSIM Refill | Top-up Your Global Data Plan | Deemax</title>
+    <meta name="description" content="Quickly refill your global eSIM data. Instant top-ups for international travel data plans. Stay connected across 150+ countries with Deemax.">
+    <meta name="keywords" content="eSIM refill, top up eSIM, international data top up, travel data refill, buy eSIM data, Deemax eSIM">
+
+    <meta name="google-site-verification" content="fTAchZCV3xVxBR75Z-jILoW7xPd5kSnfKTOpRrwC3BE" />
+
+    <meta property="og:title" content="Confirm eSIM Refill | Deemax">
+    <meta property="og:description" content="Quickly top up your travel data and stay connected globally. Instant activation.">
+    <meta property="og:image" content="https://www.deemaxhub.com/assets/logo.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.deemaxhub.com/esim-refill">
+
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6', orange: '#F9861E', darkText: '#101828',
+                            midText: '#344054', lightText: '#667085', background: '#F0F5FE', border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        @media (max-width: 640px) { 
+            html { font-size: 13px; } 
+            .mobile-title { font-size: 1.1rem !important; }
+            .mobile-label { font-size: 9px !important; }
+            .mobile-input { font-size: 13px !important; padding: 0.75rem !important; }
+        }
+
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .animate-flow { animation: fadeInScale 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-brand-background min-h-screen flex font-sans text-brand-midText mb-20 lg:mb-0">
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[60] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-brand-border z-[70] transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+        <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between">
+            <img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-1 overflow-y-auto no-scrollbar">
+            <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+            <a href="/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/virtual-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                <span>Buy Number</span>
+            </a>
+            <a href="/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                <span>Buy Accts &amp; VPN</span>
+            </a>
+            <a href="/fund-wallet" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                <span>Add Money</span>
+            </a>
+            <a href="/orders" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Order History</span>
+            </a>
+            <a href="/support" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 15v-3a8 8 0 0116 0v3"></path><rect x="3" y="13" width="4" height="6" rx="2" stroke-width="1.75"></rect><rect x="17" y="13" width="4" height="6" rx="2" stroke-width="1.75"></rect><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 19c0 1.7-1.6 2.5-4 2.5h-1.5"></path></svg>
+                <span>Help &amp; Support</span>
+            </a>
+            <a href="/profile" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span>Profile</span>
+            </a>
+            <details class="group" open>
+                <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                    Others
+                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+            <a href="/gifts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
+                <span>Send Gifts</span>
+            </a>
+            <a href="/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span>VPN</span>
+            </a>
+            <a href="/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+                <span>Proxies</span>
+            </a>
+            <a href="/esim-refill" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>eSIMs Refill</span>
+            </a>
+            <a href="/esim-activation" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                <span>eSIMs Activation</span>
+            </a>
+            <a href="/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span>RDP</span>
+            </a>
+            </details>
+        </nav>
+
+        <div class="p-4 border-t border-brand-border flex items-center gap-2">
+            <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <span>Log Out</span>
+            </button>
+            <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <span class="theme-switch-knob">
+                    <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                    <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-grow lg:ml-64 flex flex-col min-h-screen min-w-0">
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-[55] h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">eSIM Refill</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Wallet Balance (tap to top up) -->
+                <a href="/fund-wallet" class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText hover:border-brand-blue transition-colors">
+                    <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <span id="displayBalance">₦0</span>
+                </a>
+            </div>
+        </header>
+
+        <main class="p-4 md:p-8 max-w-5xl w-full mx-auto flex flex-col flex-grow">
+            
+            <div id="selectionView">
+                <div class="mb-6">
+                    <h2 class="text-lg md:text-xl font-bold text-brand-darkText mobile-title">Select a Carrier</h2>
+                    <p class="text-[10px] md:text-xs text-brand-lightText">Choose your provider to begin the refill.</p>
+                </div>
+                <div id="carrierGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6"></div>
+            </div>
+
+            <div id="formView" class="hidden animate-flow">
+                <button onclick="goBackToGrid()" class="mb-5 flex items-center gap-2 text-[10px] font-bold text-brand-blue uppercase hover:translate-x-[-4px] transition-transform">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Back to Carriers
+                </button>
+                
+                <div class="bg-white border border-brand-border rounded-2xl md:rounded-3xl overflow-hidden shadow-sm max-w-xl mx-auto">
+                    <div class="bg-brand-blue p-6 md:p-8 text-center text-white">
+                        <div class="bg-white w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl p-3 mx-auto mb-4 shadow-lg">
+                            <img id="formCarrierLogo" src="" class="w-full h-full object-contain">
+                        </div>
+                        <h2 id="formCarrierName" class="text-xl md:text-2xl font-bold">--</h2>
+                        <p class="text-blue-100 text-[9px] uppercase font-bold tracking-widest mt-1">Direct Refill Portal</p>
+                    </div>
+
+                    <div class="p-5 md:p-10 space-y-5">
+                        <div>
+                            <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label">eSIM Mobile Number</label>
+                            <input type="text" id="targetNumber" placeholder="+1 (000) 000-0000" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all mobile-input">
+                        </div>
+                        <div>
+                <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label"> Country</label>
+                <input type="text" id="coverageCountry" placeholder="e.g. United States" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all mobile-input">
+            </div>
+                        <div>
+                            <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label">Refill Amount (NGN)</label>
+                            <select id="planSelector" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none appearance-none cursor-pointer mobile-input"></select>
+                        </div>
+
+                        <button onclick="initiatePayment()" id="payBtn" class="w-full py-4 md:py-5 bg-brand-blue text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-bold shadow-xl hover:bg-blue-700 transition-all active:scale-[0.98]">
+                            Proceed to Refill
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+           
+
+            <div id="receiptView" class="hidden animate-flow py-4 md:py-8 px-4">
+    <div class="bg-white border-2 border-dashed border-brand-border rounded-[2rem] p-5 md:p-8 max-w-[340px] md:max-w-md mx-auto shadow-2xl relative">
+        <div class="flex justify-center mb-4">
+            <img src="/assets/logo.png" alt="Deemax Logo" class="h-8 md:h-10 object-contain">
+        </div>
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 md:w-10 md:h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <div class="text-center mt-2">
+            <h2 class="text-base md:text-xl font-black text-brand-darkText uppercase tracking-tight">Purchase Successful</h2>
+            <p class="text-[9px] md:text-[10px] text-brand-lightText mt-1">Order Ref: <span id="rID" class="font-mono bg-gray-100 px-1 rounded">--</span></p>
+        </div>
+        <div class="my-5 space-y-2.5 border-t border-b border-dashed border-brand-border py-5 font-mono text-[10px] md:text-xs">
+            <div class="flex justify-between items-center"><span class="text-brand-lightText">Carrier:</span> <span id="rCarrier" class="font-bold text-right text-brand-darkText uppercase">--</span></div>
+            <div class="flex justify-between items-center"><span class="text-brand-lightText">Target Number:</span> <span id="rNumber" class="font-bold text-right text-brand-darkText">--</span></div>
+           <div class="flex justify-between items-center"><span class="text-brand-lightText">Country:</span>  <span id="rCountry" class="font-bold text-right text-brand-darkText uppercase">--</span></div>
+            <div class="flex justify-between items-center"><span class="text-brand-lightText">Plan Paid:</span> <span id="rPlan" class="font-bold text-right text-brand-darkText">--</span></div>
+            <div class="flex justify-between items-center"><span class="text-brand-lightText">Payment Method:</span> <span class="bg-brand-blue text-white px-2 py-0.5 rounded font-bold text-[8px] md:text-[9px] uppercase">Wallet Balance 💳</span></div>
+            <div class="flex justify-between items-center pt-1"><span class="text-brand-lightText">Refill Status:</span> <span class="text-orange-600 font-bold text-[9px] uppercase animate-pulse">Processing by Deemax</span></div>
+        </div>
+        <button onclick="contactManagement()" class="w-full py-3.5 bg-[#25D366] text-white rounded-xl text-[10px] md:text-[12px] font-bold flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition-all shadow-md">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            Click to Notify Deemax for Refill
+        </button>
+        <button onclick="location.reload()" class="w-full text-[8px] md:text-[10px] font-black text-brand-lightText hover:text-brand-blue uppercase py-3 mt-1 tracking-widest transition-colors">← New Transaction</button>
+    </div>
+</div>
+
+ <div id="userGuide" class="mt-12 bg-white border border-brand-border rounded-3xl p-6 md:p-8 shadow-sm">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-sm md:text-base font-bold text-brand-darkText uppercase tracking-tight">Instructions / User Guide</h3>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-xl">
+                        <p class="text-[11px] md:text-xs font-bold text-orange-800 uppercase leading-relaxed">
+                            IMPORTANT NOTICE: YOU MUST KNOW THE ORIGINAL PAYMENT OF YOUR ESIM PLAN AND MAKE SURE YOU CHOOSE YOUR ORIGINAL PAYMENT PLAN. IF YOU MAKE PAYMENT OF OTHER PLAN THAT DIDNT' MATCH YOUR CURRENT PLAN WE WON'T BE RESPONSIBLE FOR ANY LOST. THANK YOU WE APPRECIATE YOUR SUPPORT AT DEEMAX.
+                        </p>
+                    </div>
+                    <ul class="text-[10px] md:text-xs text-brand-midText space-y-2 list-disc pl-4">
+                        <li>Select your active eSIM carrier from the list above.</li>
+                        <li>Enter the correct mobile number associated with your eSIM.</li>
+                        <li>Select the refill amount that matches your current subscription plan.</li>
+                        <li>After successful payment, click the WhatsApp button to notify Deemax for instant processing.</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <div id="paymentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
+    <div class="fixed inset-0 bg-brand-darkText/60 backdrop-blur-sm" onclick="closePaymentModal()"></div>
+    
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full relative z-10 shadow-2xl scale-up overflow-hidden">
+        
+        <div id="modalIconContainer" class="flex justify-center mb-4">
+            </div>
+
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-black text-brand-darkText uppercase tracking-tight">Confirm Refill</h3>
+            <p class="text-[10px] text-brand-lightText mt-1">Review your balances before proceeding.</p>
+        </div>
+
+        <div class="space-y-3 mb-8">
+            <div class="p-4 bg-gray-50 rounded-2xl border border-brand-border">
+                <span class="text-[9px] font-bold text-brand-lightText uppercase block mb-1">Main Wallet Balance</span>
+                <span id="modalBalanceNGN" class="text-base font-black text-brand-darkText">₦0.00</span>
+            </div>
+
+            <div id="esimBonusSection" class="hidden p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                <div>
+                    <span class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Referral Bonus</span>
+                    <span id="modalBonusBalanceNGN" class="text-sm font-black text-emerald-600">₦0.00</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="esimBonusStatusLabel" class="text-[8px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200">USE FIRST</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="esimUseBonusToggle" class="sr-only peer" checked>
+                        <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center p-4 bg-brand-blue/5 rounded-2xl border border-brand-blue/10">
+                <span class="text-[10px] font-bold text-brand-blue uppercase">Total Amount Due</span>
+                <span id="modalTotalDue" class="text-base font-black text-brand-blue">₦0.00</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+            <button id="confirmPurchaseBtn" onclick="purchaseEsimWithWallet()" class="w-full bg-brand-blue text-white py-4 rounded-2xl font-bold active-scale transition-all duration-200 uppercase text-xs tracking-wider">
+                Confirm & Pay Now
+            </button>
+
+            <a href="/fund-wallet" id="topupBtn" class="hidden w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-center active-scale hover:bg-emerald-700 transition-all duration-200 uppercase text-xs">
+                Topup Wallet Balance
+            </a>
+
+            <button onclick="closePaymentModal()" class="w-full py-2 text-[10px] font-bold text-brand-lightText hover:text-brand-darkText uppercase">
+                Go Back
+            </button>
+        </div>
+    </div>
+</div>
+
+
+  
+  <script>
+    const API_BASE_URL = '/api';
+    let userBalances = { ngn: 0, bonusNGN: 0, hasDeposited: false };
+    let currentOrderData = null;
+
+   const carriers = [
+    // T-Mobile Options
+    { id: 'tmobile', name: 'T-Mobile $15 (Prepaid)', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Carrier', p: 28000,  lbl: ''  },
+    { id: 'tmobile_3months', name: 'T-Mobile 3 Months Carrier eSIM', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Term Plan', p: 65000,  lbl: ''  },
+    { id: 'tmobile_6months', name: 'T-Mobile 6 Months Carrier eSIM', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Term Plan', p: 115000,  lbl: ''  },
+
+    // AT&T Options
+    { id: 'att', name: 'AT&T $35 (Prepaid)', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Carrier', p: 58000,   lbl: '' },
+    { id: 'att_3months', name: 'AT&T 3 Months Carrier eSIM', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Term Plan', p: 95000,   lbl: '' },
+    { id: 'att_6months', name: 'AT&T 6 Months Carrier eSIM', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Term Plan', p: 165000,   lbl: '' },
+
+    // General Term Plans
+    { id: '1month', name: 'One Month Carrier eSIM', image: '/assets/favicon.png', type: 'Term Plan', p: 41000,   lbl: '' },
+    { id: '3months', name: '3 Months Carrier eSIM', image: '/assets/favicon.png', type: 'Term Plan', p: 63000,   lbl: '' }
+];
+
+async function fetchUserProfile() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/user-profile`, {
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
+                'Cache-Control': 'no-cache' 
+            }
+        });
+        if (res.status === 401) {
+            return logout(); 
+        }
+        const data = await res.json();
+        if (res.status === 403 && data.isUnverified) {
+            console.warn("User is unverified. Redirecting to verification...");
+            window.location.href = `/register?verify_email=${encodeURIComponent(data.email || '')}`;
+            return;
+        }
+if (data.success) {
+    const userData = data.user || data;
+    userBalances.ngn = userData.balance || 0; 
+    userBalances.bonusNGN = userData.bonusBalance || 0; 
+    
+    // Update Displays
+    const elBal = document.getElementById('displayBalance');
+    const elBonus = document.getElementById('displayBonus');
+    if (elBal) elBal.innerText = `₦${userBalances.ngn.toLocaleString()}`;
+    if (elBonus) elBonus.innerText = `₦${userBalances.bonusNGN.toLocaleString()}`;
+}
+    } catch (err) {
+        console.error("Failed to fetch profile details:", err);
+    }
+}
+
+async function loadUserData() {
+    const success = await fetchUserProfile();
+    if (success) {
+        const balDisplay = document.getElementById('walletBalanceDisplay');
+        if (balDisplay) {
+            // Ensure we use the mapped 'ngn' property
+            balDisplay.innerText = `₦${userBalances.ngn.toLocaleString()}`;
+        }
+    }
+}
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebarOverlay').classList.toggle('hidden');
+    }
+
+   function initPage() {
+    const grid = document.getElementById('carrierGrid');
+    if (grid) {
+        grid.innerHTML = carriers.map(c => `
+            <div onclick="selectCarrier('${c.id}')" class="bg-white border border-brand-border p-4 md:p-6 rounded-2xl md:rounded-3xl cursor-pointer hover:shadow-xl transition-all group text-center relative overflow-hidden">
+                <span class="absolute top-2 right-2 bg-brand-blue text-white text-[7px] font-bold px-2 py-0.5 rounded-full uppercase">${c.type}</span>
+                <div class="h-12 md:h-16 mb-3 flex items-center justify-center transition-all">
+                    <img src="${c.image}" class="max-h-full object-contain group-hover:scale-105 transition-transform">
+                </div>
+                <h3 class="text-[9px] md:text-[10px] font-bold text-brand-darkText uppercase group-hover:text-brand-blue leading-tight">${c.name}</h3>
+            </div>
+        `).join('');
+    }    
+    const selector = document.getElementById('planSelector');
+    if (selector) selector.innerHTML = '<option value="" disabled selected>Select Carrier First</option>';
+}
+function selectCarrier(id) {
+    const carrier = carriers.find(c => c.id === id);
+    if (!carrier) return;
+    window.currentSelectedCarrier = carrier; 
+    
+    document.getElementById('selectionView')?.classList.add('hidden');
+    document.getElementById('formView')?.classList.remove('hidden');        
+    
+    if(document.getElementById('formCarrierName')) document.getElementById('formCarrierName').innerText = carrier.name;
+    if(document.getElementById('formCarrierLogo')) document.getElementById('formCarrierLogo').src = carrier.image;
+    
+    const selector = document.getElementById('planSelector');
+    if (selector) {
+        // Dynamically determine the refill/term label based on ID or type
+        let durationLabel = "Monthly Refill";
+        if (carrier.id.includes('3months') || carrier.name.toLowerCase().includes('3 months')) {
+            durationLabel = "3 Months Plan";
+        } else if (carrier.id.includes('6months') || carrier.name.toLowerCase().includes('6 months')) {
+            durationLabel = "6 Months Plan";
+        } else if (carrier.type === 'Term Plan' && carrier.name.toLowerCase().includes('one month')) {
+            durationLabel = "Monthly Refill";
+        }
+
+        const formattedPrice = `₦${carrier.p.toLocaleString()}.00 ${carrier.lbl} ${durationLabel}`.trim();
+        selector.innerHTML = `<option value="${formattedPrice}">${formattedPrice}</option>`;        
+        
+        const payBtn = document.getElementById('payBtn');
+        if (payBtn) payBtn.innerText = `Proceed with ${formattedPrice}`;
+    }
+}
+
+function updateButtonPrice() {
+        const plan = document.getElementById('planSelector').value;
+        document.getElementById('payBtn').innerText = `Pay for ${plan} Refill`;
+    }
+
+    document.getElementById('planSelector').addEventListener('change', updateButtonPrice);
+
+    function goBackToGrid() {
+        document.getElementById('selectionView').classList.remove('hidden');
+        document.getElementById('formView').classList.add('hidden');
+    }
+
+  async function initiatePayment() {
+    const num = document.getElementById('targetNumber').value.trim();
+    const planString = document.getElementById('planSelector').value; 
+    const carrier = window.currentSelectedCarrier;
+    const payBtn = document.getElementById('payBtn');    
+    const confirmBtn = document.getElementById('confirmPurchaseBtn');
+    const topupBtn = document.getElementById('topupBtn');
+
+    if (!num) { alert("Please enter the eSIM mobile number"); return; }
+    if (!carrier) return;
+
+    payBtn.innerText = "Checking Wallet...";
+    payBtn.disabled = true;
+    
+    await loadUserData(); 
+    
+    payBtn.innerText = `Pay for ${planString} (Wallet)`;
+    payBtn.disabled = false;
+
+    const mainBal = Number(userBalances.ngn || 0);
+    const bonusBal = Number(userBalances.bonusNGN || 0);
+    const totalAvailable = mainBal + bonusBal;
+
+    // FIX APPLIED HERE:
+    const planPrice = Number(planString.split(' ')[0].replace(/[^0-9.]/g, ""));
+
+    // Update the Modal UI
+    document.getElementById('modalBalanceNGN').innerText = `₦${mainBal.toLocaleString()}`;
+    document.getElementById('modalTotalDue').innerText = planString;
+    
+    // Show/Hide Bonus Section
+    const bonusSection = document.getElementById('esimBonusSection');
+    if (bonusBal > 0) {
+        bonusSection.classList.remove('hidden');
+        document.getElementById('modalBonusBalanceNGN').innerText = `₦${bonusBal.toLocaleString()}`;
+    } else {
+        bonusSection.classList.add('hidden');
+    }
+
+    // Toggle Logic
+    if (totalAvailable < planPrice) {
+        confirmBtn.classList.add('hidden');
+        topupBtn.classList.remove('hidden');
+    } else {
+        confirmBtn.classList.remove('hidden');
+        topupBtn.classList.add('hidden');
+        confirmBtn.innerText = "Confirm & Pay Now";
+        confirmBtn.disabled = false;
+    }
+
+    document.getElementById('paymentModal').classList.remove('hidden');
+}
+
+  async function purchaseEsimWithWallet() {
+    const confirmBtn = document.getElementById('confirmPurchaseBtn');
+    const country = document.getElementById('coverageCountry').value.trim();
+    const num = document.getElementById('targetNumber').value.trim();
+    const planRaw = document.getElementById('planSelector').value; 
+    const carrier = window.currentSelectedCarrier;
+    const useBonus = document.getElementById('esimUseBonusToggle')?.checked || false;
+
+    // 1. Data Sanitization: Convert "₦30,000.00 One Month..." into 30000
+    // We split by space to get the price part, then remove currency symbols and commas.
+    const cleanAmount = Number(planRaw.split(' ')[0].replace(/[^0-9.]/g, ""));
+
+    // 2. Validation Checks
+    if (!country) { 
+        alert("Please enter the coverage country."); 
+        return; 
+    }
+    if (!num) { 
+        alert("Please enter the eSIM mobile number."); 
+        return; 
+    }
+    if (!carrier) {
+        alert("Carrier selection missing. Please go back and select a carrier.");
+        return;
+    }
+
+    // Prevent double submissions
+    if (confirmBtn.disabled) return;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `
+        <span class="flex items-center justify-center gap-2">
+            <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing Refill...
+        </span>`;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/purchase-with-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+            },
+            body: JSON.stringify({
+                productType: 'eSIM_Refill',
+                carrierId: carrier.id,
+                carrierName: carrier.name,
+                coverageCountry: country,
+                mobileNumber: num,
+                planAmount: cleanAmount, // Now sending the clean number (e.g., 30000)
+                useBonus: useBonus,
+                productImage: carrier.image
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('paymentModal').classList.add('hidden');
+            showReceipt(data.order);
+            await loadUserData(); // Refresh the balance
+        } else {
+            alert(data.message || "Purchase failed");
+            confirmBtn.disabled = false;
+            confirmBtn.innerText = "Confirm & Pay Now";
+        }
+    } catch (err) {
+        console.error("Network Error:", err);
+        alert("Connection lost. Please check your transaction history.");
+        confirmBtn.disabled = false;
+        confirmBtn.innerText = "Confirm & Pay Now";
+    }
+}
+
+function showReceipt(order) {
+    currentOrderData = order;
+
+    document.getElementById('selectionView').classList.add('hidden');
+    document.getElementById('formView').classList.add('hidden');
+    document.getElementById('paymentModal').classList.add('hidden');
+
+    if (document.getElementById('rID')) 
+        document.getElementById('rID').innerText = order.paymentReference || 'N/A';
+    if (document.getElementById('rCarrier')) 
+        document.getElementById('rCarrier').innerText = order.carrier?.name || order.nodeName || 'eSIM';
+    if (document.getElementById('rNumber')) 
+        document.getElementById('rNumber').innerText = order.target?.number || order.targetNumber || 'N/A';
+    if (document.getElementById('rPlan')) 
+        document.getElementById('rPlan').innerText = order.planName || `₦${order.amount?.toLocaleString()}`;
+    if (document.getElementById('rCountry')) 
+        document.getElementById('rCountry').innerText = order.target?.country || order.country || 'N/A';
+    if (document.getElementById('rMainUsed'))
+        document.getElementById('rMainUsed').innerText = `₦${(order.mainBalanceUsed || 0).toLocaleString()}`;
+    if (document.getElementById('rBonusUsed'))
+        document.getElementById('rBonusUsed').innerText = `₦${(order.bonusBalanceUsed || 0).toLocaleString()}`;
+    if (document.getElementById('rEmail'))
+        document.getElementById('rEmail').innerText = order.userEmail || 'N/A';
+    
+    if (document.getElementById('rFullName'))
+        document.getElementById('rFullName').innerText = order.fullName || 'Customer';
+    const receiptView = document.getElementById('receiptView');
+    if (receiptView) {
+        receiptView.classList.remove('hidden');
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+  function contactManagement() {
+    const order = currentOrderData || {};
+    const tid = order.paymentReference || document.getElementById('rID')?.innerText || "N/A";
+    const carrier = order.carrier?.name || order.nodeName || document.getElementById('rCarrier')?.innerText || "N/A";
+    const country = order.target?.country || order.country || document.getElementById('rCountry')?.innerText || "N/A";
+    const number = order.target?.number || order.targetNumber || document.getElementById('rNumber')?.innerText || "N/A";
+    const plan = order.planName || (order.amount ? `₦${order.amount.toLocaleString()}` : document.getElementById('rPlan')?.innerText || "N/A");
+    const fullName = order.fullName || document.getElementById('rFullName')?.innerText || "Customer";
+    const userEmail = order.userEmail || document.getElementById('rEmail')?.innerText || "N/A";
+    const mainUsed = order.mainBalanceUsed || 0;
+    const bonusUsed = order.bonusBalanceUsed || 0;    
+    const paymentMethod = bonusUsed > 0 
+        ? `Split (Main: ₦${mainUsed.toLocaleString()} | Bonus: ₦${bonusUsed.toLocaleString()})` 
+        : `Main Wallet (₦${mainUsed.toLocaleString()})`;
+
+    const timeSent = new Date().toLocaleString('en-NG', { 
+        dateStyle: 'medium', 
+        timeStyle: 'short' 
+    });
+
+    // 4. Construct the high-design message
+    const msg = `📱 *Deemax: NEW eSIM REFILL REQUEST*\n` +
+                `📅 *DATE:* ${timeSent}\n` +
+                `__________________________________\n\n` +
+                `✅ *PAYMENT STATUS:* CONFIRMED\n` +
+                `🆔 *REF ID:* ${tid}\n` +
+                `💰 *TOTAL AMOUNT:* ${plan}\n` + 
+                `💳 *PAYMENT DETAIL:* ${paymentMethod}\n` +
+                `👤 *CUSTOMER:* ${fullName}\n` +
+                `📧 *EMAIL:* ${userEmail}\n\n` +
+                `*REFILL DETAILS:*\n` +
+                `━━━━━━━━━━━━━━━━━━\n` +
+                `📶 *CARRIER:* ${carrier}\n` +
+                `🌍 *COUNTRY:* ${country}\n` +
+                `🔢 *TARGET NO:* ${number}\n` +
+                `━━━━━━━━━━━━━━━━━━\n\n` +
+                `*Deemax:* Customer has paid. Please process and update confirmation ID.`;
+
+    // 5. Open WhatsApp
+    const whatsappUrl = `https://wa.me/2347059450227?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+function closePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }    
+    const payBtn = document.getElementById('payBtn');
+    if (payBtn) {
+        const plan = document.getElementById('planSelector').value;
+        payBtn.innerText = `Pay for ${plan} Refill`;
+        payBtn.disabled = false;
+    }
+}
+
+
+    
+function closeReceipt() {
+    document.getElementById('receiptModal').classList.add('hidden');
+    document.getElementById('receiptModal').classList.remove('flex');
+    // Go back to the grid view for a fresh start
+    goBackToGrid();
+}
+
+    function logout() {
+        localStorage.removeItem('userToken');
+        window.location.href = '/login';
+    }
+
+    window.onload = async () => {
+        initPage(); 
+        await loadUserData();
+    };
+
+</script>
+</body>
+</html>

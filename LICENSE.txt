@@ -1,5 +1,5 @@
 PROPRIETARY AND CONFIDENTIAL LICENSE
-Project Name: SMSGlobe (smsglobe.net)
+Project Name: Deemax (deemaxhub.com)
 
 Copyright © 2026 Arogundade Oladipupo. All Rights Reserved.
 
@@ -13,7 +13,7 @@ Duplicate or Redistribute: Copy, share, or redistribute the source code or desig
 
 Reverse Engineer: Attempt to decompile, disassemble, or derive the source code from the deployed serverless functions on Vercel.
 
-Unauthorized Deployment: Use the SMSGlobe architecture for any commercial or private service outside of the official smsglobe.net domain.
+Unauthorized Deployment: Use the SMSGlobe architecture for any commercial or private service outside of the official deemaxhub.com domain.
 
 3. DEVELOPER RIGHTS
 Arogundade Oladipupo reserves the right to:

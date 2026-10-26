@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - eSIM Activations</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 14px; }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+      <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">eSIM Activations</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-3 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full overflow-hidden">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4 px-1">
+        <div>
+            <h2 class="text-xl sm:text-2xl font-bold tracking-tight">eSIM Activation & Refills</h2>
+            <p class="text-brand-lightText text-xs sm:text-sm">Manage new eSIM orders and top-up requests (NGN)</p>
+        </div>
+        <button onclick="fetchOrders()" class="bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2 w-fit">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh List
+        </button>
+    </header>
+
+    <div class="bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden">
+        <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left text-[11px] sm:text-sm whitespace-nowrap">
+                <thead class="bg-gray-50 text-brand-lightText uppercase text-[9px] sm:text-[11px] border-b border-brand-border">
+                    <tr>
+                        <th class="px-4 py-4 font-bold">Transaction / Type</th>
+                        <th class="px-4 py-4 font-bold">User / Activation Email</th>
+                        <th class="px-4 py-4 font-bold">Plan / Carrier</th>
+                        <th class="px-4 py-4 font-bold text-center">Amount (NGN)</th>
+                        <th class="px-4 py-4 font-bold">Status</th>
+                        <th class="px-4 py-4 font-bold text-right">Actions</th> </tr>
+                </thead>
+                <tbody id="orders-body" class="divide-y divide-gray-100">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+    </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl scale-in-center">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="font-bold text-brand-darkText">Order Information</h3>
+            <button onclick="document.getElementById('detailModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="detailContent" class="p-6 max-h-[80vh] overflow-y-auto no-scrollbar">
+            </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Escapes every string in API data before it is rendered with innerHTML.
+     * Names, emails and addresses are typed by customers, so they must never run as HTML.
+     */
+    function escapeHtmlDeep(value) {
+        if (typeof value === 'string') {
+            return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        if (Array.isArray(value)) return value.map(escapeHtmlDeep);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeHtmlDeep(v)]));
+        }
+        return value;
+    }
+
+    let currentOrders = [];
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+    async function fetchOrders() {
+    const token = localStorage.getItem('smsglobe_admin_token');
+    const tbody = document.getElementById('orders-body');
+
+    try {
+        const response = await fetch('/api/esim-activations', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = escapeHtmlDeep(await response.json());
+
+        if (data.success) {
+            // Save to global variable for modal access
+            currentOrders = data.orders; 
+            
+            tbody.innerHTML = data.orders.map(order => {
+                // Determine Carrier and Device from order properties
+                const carrier = order.carrierName || order.nodeName || 'eSIM Carrier';
+                const device = order.deviceName || order.targetNumber || 'Standard Device';
+                
+                return `
+                    <tr class="hover:bg-gray-50/50 transition-colors border-b border-gray-100">
+                        <td class="px-4 py-4">
+                            <div class="font-bold text-brand-darkText">#${order.paymentReference.slice(-8)}</div>
+                            <div class="text-[9px] font-black text-brand-blue uppercase tracking-tighter">
+                                ${order.productType?.replace('_', ' ') || 'eSIM'}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-[11px] font-bold text-brand-darkText">${order.fullName || 'User'}</div>
+                            <div class="text-[10px] text-brand-orange font-medium mt-0.5">${order.email}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="font-bold text-brand-darkText uppercase text-[10px]">${carrier}</div>
+                            <div class="text-[9px] text-brand-lightText font-bold">${order.planName || 'Data Plan'}</div>
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            <div class="font-black text-brand-blue text-[12px]">₦${parseFloat(order.amount).toLocaleString()}</div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase ${getStatusClass(order.status)}">
+                                ${order.status}
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick="viewActivationDetails('${order.paymentReference}')" 
+                                    class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-[10px] font-bold hover:bg-gray-200 transition-all">
+                                    View
+                                </button>
+                                <button onclick="manageActivation('${order.paymentReference}')" 
+                                    class="px-3 py-1.5 bg-brand-blue text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all shadow-sm">
+                                    Manage
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+    } catch (err) {
+        console.error("Fetch error:", err);
+    }
+}
+
+function viewActivationDetails(ref) {
+    const order = currentOrders.find(o => o.paymentReference === ref);
+    if (!order) return;
+
+    const container = document.getElementById('detailContent');
+    const date = new Date(order.createdAt).toLocaleString();
+    
+    // Consistent fallback logic for the detail view
+    const carrier = order.carrierName || order.nodeName || 'N/A';
+    const device = order.deviceName || order.targetNumber || 'N/A';
+    const actType = order.activationType || 'Standard';
+
+    container.innerHTML = `
+        <div class="space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                        order.status === 'completed' || order.status === 'successful' 
+                        ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }">
+                        ${order.status}
+                    </span>
+                </div>
+                <button id="modalGenReceiptBtn" 
+                    class="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-xl text-xs font-bold hover:shadow-lg transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Generate Receipt
+                </button>
+            </div>
+
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Transaction Reference</p>
+                <p class="font-mono font-bold text-brand-darkText break-all select-all">${order.paymentReference}</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <p class="text-[10px] text-brand-lightText font-bold uppercase">Carrier / Network</p>
+                    <p class="font-bold text-sm text-brand-darkText uppercase">${carrier}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-brand-lightText font-bold uppercase">Device Model</p>
+                    <p class="font-bold text-sm text-brand-darkText">${device}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-brand-lightText font-bold uppercase">Activation Type</p>
+                    <p class="font-medium text-sm px-2 py-0.5 bg-gray-100 rounded-md w-fit">${actType}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] text-brand-lightText font-bold uppercase">Order Date</p>
+                    <p class="font-medium text-sm text-gray-600">${date}</p>
+                </div>
+            </div>
+
+            <div class="border-t pt-4">
+                <h4 class="text-[11px] font-bold text-brand-blue uppercase mb-3">Subscriber Information</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div class="col-span-1">
+                        <p class="text-[10px] text-brand-lightText font-bold uppercase">Full Name</p>
+                        <p class="font-bold text-sm">${order.fullName || 'N/A'}</p>
+                    </div>
+                    <div class="col-span-1">
+                        <p class="text-[10px] text-brand-lightText font-bold uppercase">Activation Email</p>
+                        <p class="font-bold text-sm text-blue-600 underline underline-offset-2">${order.email || order.userEmail}</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-[10px] text-brand-lightText font-bold uppercase">Residential Address</p>
+                        <p class="font-medium text-sm text-gray-700 leading-relaxed">${order.address || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-brand-lightText font-bold uppercase">Zip / Postal Code</p>
+                        <p class="font-bold text-sm">${order.zipCode || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-brand-lightText font-bold uppercase">Account Owner</p>
+                        <p class="font-medium text-xs text-gray-500">${order.userEmail}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="py-4 border-t border-b">
+                <p class="text-[10px] text-brand-lightText font-bold uppercase mb-1 text-center">eSIM Confirmation Number / PIN</p>
+                <div class="bg-green-50 border-2 border-dashed border-green-200 p-4 rounded-xl text-center">
+                    <p class="font-mono font-bold text-2xl text-green-700 tracking-widest">${order.confirmationNumber || 'PENDING'}</p>
+                </div>
+            </div>
+
+            <div class="bg-brand-dark text-white p-4 rounded-xl shadow-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-medium text-gray-300">Total Amount Charged:</span>
+                    <b class="text-xl">₦${parseFloat(order.amount).toLocaleString()}</b>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modalGenReceiptBtn').onclick = () => showReceiptOptions(order);
+    document.getElementById('detailModal').classList.remove('hidden');
+}
+
+function manageActivation(ref) {
+    const order = currentOrders.find(o => o.paymentReference === ref);
+    if (!order) return;
+
+    const container = document.getElementById('detailContent');
+    container.innerHTML = `
+        <div class="space-y-5">
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Status</label>
+                <select id="updateStatus" class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand-blue outline-none">
+                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                    <option value="failed" ${order.status === 'failed' ? 'selected' : ''}>Failed</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Activation PIN / Confirmation Code</label>
+                <input type="text" id="updateConf" value="${order.confirmationNumber || ''}" 
+                    class="w-full border border-gray-200 rounded-xl p-3 text-sm font-mono focus:ring-2 focus:ring-brand-blue outline-none" 
+                    placeholder="e.g. LPA:1$SMSG.COM$...">
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Upload Receipt (Image or PDF)</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-brand-blue transition-colors group">
+                    <input type="file" id="receiptFile" accept="image/*,.pdf" 
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        onchange="handleFileSelect(this)">
+                    <div class="text-center">
+                        <svg class="w-8 h-8 mx-auto text-gray-400 group-hover:text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p id="fileNameDisplay" class="text-xs text-gray-500 mt-2">Click to upload or drag and drop</p>
+                    </div>
+                </div>
+                ${order.receiptUrl ? `<p class="text-[10px] text-green-600 mt-1">✓ Current receipt exists</p>` : ''}
+            </div>
+
+            <div class="pt-4 border-t">
+                <button id="saveOrderBtn" onclick="saveOrderUpdate('${order.paymentReference}')" 
+                    class="w-full bg-brand-blue text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-200 flex justify-center items-center gap-2">
+                    <span>Update Order Details</span>
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('detailModal').classList.remove('hidden');
+}
+
+// Visual helper for file selection
+function handleFileSelect(input) {
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    if (input.files && input.files[0]) {
+        fileNameDisplay.innerText = input.files[0].name;
+        fileNameDisplay.classList.add('text-brand-blue', 'font-bold');
+    }
+}
+
+async function saveOrderUpdate(tid) {
+    const status = document.getElementById('updateStatus').value;
+    const confirmationNumber = document.getElementById('updateConf').value.trim();
+    const btn = document.getElementById('saveOrderBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="flex items-center justify-center gap-2">Processing...</span>`;
+
+    try {
+        const response = await fetch('/api/esim-activation-complete', {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${localStorage.getItem('smsglobe_admin_token')}`,
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ tid, status, confirmationNumber })
+        });
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('detailModal').classList.add('hidden');
+            fetchOrders();
+        } else { notify(data.message, 'error'); }
+    } catch (err) { notify("Connection Error", 'error'); }
+    finally { btn.disabled = false; btn.innerText = "Update Order Details"; }
+}
+
+// --- RECEIPT UTILITIES (PDF/PNG) ---
+function showReceiptOptions(order) {
+    const overlay = document.createElement('div');
+    overlay.id = "receiptSelectorOverlay";
+    overlay.className = "fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4";
+    overlay.innerHTML = `
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl scale-in-center">
+            <h3 class="text-lg font-bold text-gray-900 mb-1">Download Receipt</h3>
+            <p class="text-xs text-gray-500 mb-6">Choose your preferred format for this activation.</p>
+            <div class="space-y-3">
+                <button id="downloadPdfBtn" class="w-full flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all">
+                    <span class="font-bold text-red-700 text-sm">PDF Document</span>
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                <button id="downloadImgBtn" class="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all">
+                    <span class="font-bold text-blue-700 text-sm">Image (PNG)</span>
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+            <button onclick="document.getElementById('receiptSelectorOverlay').remove()" class="mt-6 w-full py-2 text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest">Close</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('downloadPdfBtn').onclick = () => { overlay.remove(); generateUniversalReceipt(order, 'pdf'); };
+    document.getElementById('downloadImgBtn').onclick = () => { overlay.remove(); generateUniversalReceipt(order, 'image'); };
+}
+
+async function generateUniversalReceipt(order, format) {
+    const receiptDiv = document.createElement('div');
+    
+    Object.assign(receiptDiv.style, { 
+        width: '350px', 
+        padding: '30px', 
+        background: '#fff', 
+        position: 'absolute', 
+        left: '-9999px', 
+        fontFamily: "'Outfit', system-ui, sans-serif",
+        color: '#1a1a1a',
+        overflow: 'hidden'
+    });
+    
+    const logoUrl = '/assets/logo.png';
+
+    // 1. IMPROVED DATE & TIME FORMATTING (Lagos/Nigeria local time)
+    const dateTime = new Date(order.createdAt || Date.now()).toLocaleString('en-NG', {
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+
+    // 2. FETCH CORRECT DATA POINTS
+    const deviceName = order.nodeName || order.targetNumber || 'eSIM Device';
+    const activationType = order.activationType || 'Standard Activation';
+
+    receiptDiv.innerHTML = `
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-45deg); 
+            font-size:40px; color:rgba(15, 84, 198, 0.05); font-weight:900; white-space:nowrap; pointer-events:none; z-index:0; text-transform:uppercase;">
+            DEEMAX 
+        </div>
+
+        <div style="position:relative; z-index:1;">
+            <div style="text-align:center; margin-bottom:25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
+                <img src="${logoUrl}" style="width:45px; height:auto; margin:0 auto 10px auto; display:block;">
+                <h1 style="font-size:14px; margin:0; color:#0f54c6; text-transform:uppercase; letter-spacing:1px; font-weight:800;">Official Receipt</h1>
+                <div style="margin-top: 8px;">
+                    <p style="font-size:9px; color:#64748b; margin:0; text-transform:uppercase; letter-spacing:0.5px;">Issued On</p>
+                    <p style="font-size:11px; color:#1e293b; margin:2px 0; font-weight:600;">${dateTime}</p>
+                </div>
+            </div>
+
+            <div style="font-size:11px; line-height:1.6;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                    <span style="color:#64748b;">Reference:</span>
+                    <span style="font-weight:700; font-family:monospace;">${order.paymentReference}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                    <span style="color:#64748b;">Carrier:</span>
+                    <span style="font-weight:600;">${order.nodeName || 'N/A'}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                    <span style="color:#64748b;">Device:</span>
+                    <span style="font-weight:600;">${deviceName}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                    <span style="color:#64748b;">Plan:</span>
+                    <span style="font-weight:600;">${order.planName}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+                    <span style="color:#64748b;">Activation Type:</span>
+                    <span style="font-weight:600; color:#0f54c6;">${activationType}</span>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                <p style="font-size:9px; color:#64748b; margin:0 0 5px 0; font-weight:bold; text-transform:uppercase;">Subscriber Details</p>
+                <p style="font-size:11px; margin:2px 0; color:#1e293b;"><b>Name:</b> ${order.fullName || 'N/A'}</p>
+                <p style="font-size:11px; margin:2px 0; color:#1e293b;"><b>Email:</b> ${order.email || order.userEmail}</p>
+                <p style="font-size:10px; margin:2px 0; color:#64748b;"><b>Address:</b> ${order.address || 'N/A'}, ${order.zipCode || ''}</p>
+            </div>
+
+            <div style="margin-top:25px; text-align:center; padding-top:15px; border-top:2px dashed #e2e8f0;">
+                <p style="font-size:9px; color:#64748b; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">Provisioning Status</p>
+                <p style="font-size:14px; font-weight:800; color:#16a34a; font-family:monospace; margin:0;">${order.confirmationNumber || 'SUCCESSFULLY VERIFIED'}</p>
+                <div style="margin-top:20px;">
+                    <p style="font-size:10px; font-weight:800; color:#0f54c6; margin:0; letter-spacing:1px;">DEEMAX GLOBAL CONNECTIVITY</p>
+                    <p style="font-size:8px; color:#94a3b8; margin-top:4px;">This document serves as proof of service delivery.<br>Electronically generated on secure node.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(receiptDiv);
+
+    try {
+        const canvas = await html2canvas(receiptDiv, { 
+            scale: 3, 
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        if (format === 'image') {
+            const link = document.createElement('a');
+            link.download = `SMS-GLOBE-Receipt-${order.paymentReference}.png`;
+            link.href = imgData;
+            link.click();
+        } else {
+            const { jsPDF } = window.jspdf;
+            // Adjusted height since the amount box is removed
+            const pdf = new jsPDF('p', 'mm', [80, 150]); 
+            pdf.addImage(imgData, 'PNG', 0, 0, 80, 150);
+            pdf.save(`SMS-GLOBE-Receipt-${order.paymentReference}.pdf`);
+        }
+    } catch (error) {
+        console.error("Receipt Generation Error:", error);
+    } finally {
+        document.body.removeChild(receiptDiv);
+    }
+}
+
+function getStatusClass(status) {
+    const s = status.toLowerCase();
+    if (s === 'completed' || s === 'successful') return 'bg-green-100 text-green-700';
+    if (s === 'processing') return 'bg-blue-100 text-blue-700';
+    if (s === 'pending') return 'bg-orange-100 text-orange-700';
+    return 'bg-gray-100 text-gray-700';
+}
+
+function logout() { localStorage.removeItem('smsglobe_admin_token'); window.location.href = '/admin/login'; }
+window.onload = fetchOrders;
+</script>
+</body>
+</html>

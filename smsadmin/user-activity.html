@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - User Activity</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 13px; }
+        @media (min-width: 1024px) { body { font-size: 14px; } }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        /* 1. Filter chips scroll sideways on phones without a scrollbar */
+        .no-scrollbar { scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+       <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">User Activity</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full min-w-0">
+    <section class="bg-white rounded-2xl border border-brand-border shadow-sm p-4 sm:p-6">
+        <!-- Header Row (title with count, search, refresh) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight">User Activity <span id="activityCount" class="text-brand-lightText font-normal text-base"></span></h2>
+                <p class="text-brand-lightText text-xs md:text-sm">Deposits, purchases, refunds and failed attempts, newest first</p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <input id="activitySearch" type="text" placeholder="Search user email or name..." class="flex-1 sm:w-72 bg-brand-background/30 border border-brand-border px-3 py-2 rounded-xl outline-none focus:border-brand-blue disabled:opacity-50">
+                <button type="button" onclick="loadActivity()" class="shrink-0 p-2.5 border border-brand-border rounded-xl text-brand-midText hover:bg-brand-background hover:text-brand-blue" aria-label="Refresh">
+                    <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- One-User Chip (set by clicking a user in the feed) -->
+        <div id="focusChip" class="hidden mt-3 inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 pl-3 pr-1.5 py-1 text-sm text-brand-blue">
+            <span class="text-xs opacity-80">Only</span>
+            <span id="focusEmail" class="font-semibold break-all"></span>
+            <button type="button" onclick="setFocus(null)" class="p-1 rounded-md hover:bg-white" aria-label="Show all users">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Category Filters -->
+        <div id="filterChips" class="flex gap-2 mt-4 overflow-x-auto -mx-1 px-1 no-scrollbar"></div>
+
+        <div id="activityFeed" class="mt-5">
+            <p class="text-brand-lightText text-center py-6 animate-pulse">Loading activity...</p>
+        </div>
+
+        <!-- Pager -->
+        <div id="pager" class="hidden mt-4 pt-4 border-t border-brand-border flex items-center justify-between gap-3 text-xs">
+            <span id="pagerInfo" class="text-brand-lightText tabular-nums"></span>
+            <div class="flex items-center gap-2">
+                <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1.5 border border-brand-border rounded-lg font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+                <button id="nextPage" onclick="changePage(1)" class="px-3 py-1.5 border border-brand-border rounded-lg font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+            </div>
+        </div>
+    </section>
+    </main>
+    </div>
+    </div>
+
+<script>
+    // --- 1. Helpers ---
+    /**
+     * Escapes every string in API data before it is rendered with innerHTML.
+     * Names, emails and product labels are typed by customers, so they must never run as HTML.
+     */
+    function escapeHtmlDeep(value) {
+        if (typeof value === 'string') {
+            return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        if (Array.isArray(value)) return value.map(escapeHtmlDeep);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeHtmlDeep(v)]));
+        }
+        return value;
+    }
+
+    // Admin GET with the token; a 401 sends the admin back to login
+    async function adminGet(path) {
+        const res = await fetch(`/api/${path}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('smsglobe_admin_token')}` } });
+        if (res.status === 401) { logout(); throw new Error('Session expired'); }
+        return escapeHtmlDeep(await res.json());
+    }
+
+    const naira = amount => `₦${Math.round(Number(amount || 0)).toLocaleString()}`;
+
+    // --- 2. Labels ---
+    const ACTIVITY_FILTERS = [
+        { key: 'all', label: 'All' },
+        { key: 'deposit', label: 'Deposits' },
+        { key: 'purchase', label: 'Purchases' },
+        { key: 'refund', label: 'Refunds' },
+        { key: 'failed', label: 'Failed attempts' }
+    ];
+
+    // Why a purchase didn't go through, in admin words (codes from trackPurchaseAttempt in api.js)
+    const FAIL_REASONS = {
+        provider_out_of_funds: 'Supplier balance too low',
+        out_of_stock: 'Out of stock',
+        unavailable: 'Not available',
+        provider_error: 'Supplier error',
+        provider_unavailable: 'Supplier unavailable',
+        insufficient_balance: "User's balance too low",
+        pricing_misconfigured: 'Pricing misconfigured',
+        order_write_failed: 'Order could not be saved',
+        duplicate: 'Duplicate click',
+        unverified: 'Email not verified',
+        rejected: 'Request rejected',
+        error: 'Failed'
+    };
+
+    // Order productType -> short tag, and what to call it when it has no name
+    const KIND_WORDS = {
+        SmsNumber: 'Number', Account: 'Social & VPN', VPN: 'VPN', Proxy: 'Proxy',
+        eSIM_Refill: 'eSIM refill', eSIM_Activation: 'eSIM activation', RDP: 'RDP'
+    };
+    const KIND_NOUNS = {
+        SmsNumber: 'a number', Account: 'an account', VPN: 'a VPN', Proxy: 'a proxy',
+        eSIM_Refill: 'an eSIM refill', eSIM_Activation: 'an eSIM activation', RDP: 'an RDP'
+    };
+
+    const METHOD_LABELS = {
+        admin_credit: 'Admin credit', card: 'Card', bank_transfer: 'Bank transfer', account: 'Bank account',
+        ussd: 'USSD', mobilemoneygh: 'Mobile money', opay: 'OPay', applepay: 'Apple Pay', googlepay: 'Google Pay'
+    };
+
+    const STATUS_WORDS = {
+        pending: 'Pending', processing: 'Processing', successful: 'Delivered', completed: 'Completed',
+        cancelled: 'Cancelled', failed: 'Failed'
+    };
+
+    // --- 3. Feed Pieces ---
+    const PILL_TONES = {
+        green: 'bg-green-50 text-green-700 border-green-200',
+        amber: 'bg-amber-50 text-amber-700 border-amber-200',
+        red: 'bg-red-50 text-red-600 border-red-200',
+        gray: 'bg-gray-50 text-brand-midText border-brand-border'
+    };
+
+    // One icon + tint per kind of event, so the feed scans by colour
+    const ACTIVITY_ICONS = {
+        deposit: { tint: 'bg-green-50 text-green-600', path: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+        purchase: { tint: 'bg-blue-50 text-brand-blue', path: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+        refund: { tint: 'bg-amber-50 text-amber-600', path: 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6' },
+        failed: { tint: 'bg-red-50 text-red-500', path: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' }
+    };
+
+    // Status pill per outcome
+    function activityPill(r) {
+        if (r.category === 'failed') return { text: 'Failed', tone: 'red' };
+        if (r.category === 'refund') return { text: 'Refunded', tone: 'amber' };
+        if (r.category === 'deposit') {
+            if (r.status === 'successful') return { text: 'Completed', tone: 'green' };
+            if (r.status === 'pending') return { text: 'Pending', tone: 'gray' };
+            return { text: STATUS_WORDS[r.status] || r.status, tone: 'red' };
+        }
+        if (r.status === 'completed' || r.status === 'successful') return { text: 'Completed', tone: 'green' };
+        if (r.kind === 'SmsNumber' && r.status === 'pending') return { text: 'Awaiting SMS', tone: 'gray' };
+        return { text: STATUS_WORDS[r.status] || 'Pending', tone: 'gray' };
+    }
+
+    /** "2h 5m": how long the user sat on a deposit before spending it. */
+    function gapLabel(fromIso, toIso) {
+        const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
+        if (!Number.isFinite(ms) || ms < 0) return '';
+        const m = Math.round(ms / 60000);
+        if (m < 1) return 'under a minute';
+        if (m < 60) return `${m}m`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ${m % 60}m`;
+        const d = Math.floor(h / 24);
+        return `${d}d ${h % 24}h`;
+    }
+
+    // Day headers and times follow Lagos time, like the dashboard
+    const lagosYmd = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' });
+
+    /** "Today" / "Yesterday" / "Mon, 28 Sep 2026" for the feed's day headers. */
+    function dayLabel(iso) {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+        const ymd = lagosYmd(iso);
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' });
+        const yesterday = new Date(Date.parse(`${today}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
+        if (ymd === today) return 'Today';
+        if (ymd === yesterday) return 'Yesterday';
+        return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Lagos' });
+    }
+
+    const clockTime = iso => {
+        const d = new Date(iso);
+        return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lagos' });
+    };
+
+    /** Consecutive rows bucketed by day, keeping their order. */
+    function groupByDay(list) {
+        const groups = [];
+        list.forEach(r => {
+            const label = dayLabel(r.at);
+            const last = groups[groups.length - 1];
+            if (last && last.label === label) last.rows.push(r);
+            else groups.push({ label, rows: [r] });
+        });
+        return groups;
+    }
+
+    function activityRow(r, index) {
+        const pill = activityPill(r);
+        const icon = ACTIVITY_ICONS[r.category] || ACTIVITY_ICONS.purchase;
+        const kindWord = KIND_WORDS[r.kind] || null;
+        const what = r.label ? `${r.label}${r.country ? ` (${r.country})` : ''}` : (KIND_NOUNS[r.kind] || 'a product');
+
+        // 1. Title And Amount Per Category
+        let title;
+        let amountText = r.amount != null ? naira(r.amount) : '';
+        let amountTone = 'text-brand-darkText';
+        if (r.category === 'deposit') {
+            title = r.method === 'admin_credit' ? 'Admin credit' : `Deposit via ${METHOD_LABELS[r.method] || (r.method || 'payment').replace(/_/g, ' ')}`;
+            if (r.status === 'successful') { amountText = `+${amountText}`; amountTone = 'text-green-700'; }
+            else if (r.status === 'pending') amountTone = 'text-brand-lightText';
+            else amountTone = 'text-brand-lightText line-through'; // Never landed
+        } else if (r.category === 'purchase') {
+            title = `Bought ${what}`;
+            amountText = amountText && `−${amountText}`;
+        } else if (r.category === 'refund') {
+            title = `${what} refunded${r.status && STATUS_WORDS[r.status] && r.status !== 'successful' ? ` · ${STATUS_WORDS[r.status].toLowerCase()}` : ''}`;
+            amountText = amountText && `+${amountText}`;
+            amountTone = 'text-amber-600';
+        } else {
+            title = `Couldn't buy ${what}`;
+            amountTone = 'text-brand-lightText';
+        }
+
+        // 2. Extra Lines: why it failed, and what a deposit was first spent on
+        const reason = r.reason ? (FAIL_REASONS[r.reason] || r.reason) : null;
+        const fp = r.firstPurchase;
+        const hasFirst = r.category === 'deposit' && r.status === 'successful' && fp !== undefined;
+        const who = `${r.user?.name ? `<span class="font-semibold">${r.user.name} · </span>` : ''}${r.user?.email || 'Unknown user'}`;
+
+        return `
+            <li class="flex gap-3 px-3.5 py-3 sm:px-4 sm:py-3.5 hover:bg-gray-50 transition-colors">
+                <span class="shrink-0 mt-0.5 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center ${icon.tint}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon.path}"/></svg>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-baseline gap-2 min-w-0">
+                                <span class="font-bold text-[15px] leading-snug break-words" title="${title}">${title}</span>
+                                ${kindWord && r.category !== 'deposit' ? `<span class="hidden sm:inline shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-lightText">${kindWord}</span>` : ''}
+                            </div>
+                            <!-- Email always shown in full: it's how the admin identifies the user -->
+                            <div class="mt-1 text-[13px] leading-snug break-all">
+                                ${focusUser || !r.userId
+                                    ? `<span class="text-brand-midText">${who}</span>`
+                                    : `<button type="button" onclick="focusRow(${index})" class="text-left text-brand-midText hover:text-brand-blue hover:underline underline-offset-2" title="Show only this user">${who}</button>`}
+                            </div>
+                            <div class="mt-0.5 flex items-center gap-x-1.5 text-xs text-brand-lightText min-w-0">
+                                <span class="shrink-0 tabular-nums">${clockTime(r.at)}</span>
+                                ${r.number ? `<span aria-hidden="true">·</span><span class="shrink-0 font-mono text-[11px]">+${r.number}</span>` : ''}
+                                ${r.adminEmail ? `<span aria-hidden="true">·</span><span class="truncate">by ${r.adminEmail}</span>` : ''}
+                                ${r.ref ? `<span aria-hidden="true">·</span><span class="truncate font-mono text-[11px]" title="${r.ref}">${r.ref}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="shrink-0 text-right">
+                            <div class="font-bold tabular-nums text-[15px] ${amountTone}">${amountText}</div>
+                            <span class="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${PILL_TONES[pill.tone]}">${pill.text}</span>
+                        </div>
+                    </div>
+                    ${reason ? `
+                    <p class="mt-1.5 text-xs text-red-600">
+                        <span class="font-semibold">${reason}.</span>
+                        ${r.message ? `<span class="text-brand-lightText"> User saw “${r.message}”</span>` : ''}
+                    </p>` : ''}
+                    ${hasFirst ? `
+                    <p class="mt-1.5 text-xs text-brand-lightText">
+                        ${fp === null ? 'Not spent yet.' : `First spent on <span class="text-brand-darkText font-semibold">${fp.label || KIND_NOUNS[fp.kind] || 'a product'}</span>
+                            · <span class="tabular-nums text-brand-darkText">${naira(fp.amount)}</span>
+                            · ${gapLabel(r.at, fp.boughtAt)} later`}
+                    </p>` : ''}
+                </div>
+            </li>`;
+    }
+
+    // --- 4. State & Loading ---
+    const PAGE_SIZE = 50;
+    let rows = [];
+    let category = 'all';
+    let focusUser = null; // { id, email }
+    let page = 1;
+    let pages = 1;
+    let total = 0;
+    let loadToken = 0; // Ignores replies for a filter the admin already left
+
+    async function loadActivity() {
+        const myToken = ++loadToken;
+        const feed = document.getElementById('activityFeed');
+        const search = document.getElementById('activitySearch').value.trim();
+        const params = new URLSearchParams({ page, limit: PAGE_SIZE, category });
+        if (focusUser) params.set('userId', focusUser.id);
+        else if (search) params.set('search', search);
+
+        document.getElementById('refreshIcon').classList.add('animate-spin');
+        feed.classList.add('opacity-60');
+        if (!rows.length) feed.innerHTML = '<p class="text-brand-lightText text-center py-6 animate-pulse">Loading activity...</p>';
+
+        try {
+            const data = await adminGet(`user-activity?${params}`);
+            if (myToken !== loadToken) return;
+            if (!data.success) throw new Error(data.message);
+            rows = data.rows || [];
+            total = Number(data.total) || 0;
+            pages = data.pages || 1;
+            renderFeed();
+        } catch (err) {
+            if (myToken !== loadToken) return;
+            rows = [];
+            feed.innerHTML = `
+                <div class="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                    <span>${err.message || 'Failed to load user activity.'}</span>
+                    <button type="button" onclick="loadActivity()" class="px-3 py-1 border border-red-200 rounded-lg text-xs font-bold hover:bg-white">Retry</button>
+                </div>`;
+            document.getElementById('pager').classList.add('hidden');
+        } finally {
+            if (myToken === loadToken) {
+                document.getElementById('refreshIcon').classList.remove('animate-spin');
+                feed.classList.remove('opacity-60');
+            }
+        }
+    }
+
+    // --- 5. Rendering ---
+    function renderFilters() {
+        document.getElementById('filterChips').innerHTML = ACTIVITY_FILTERS.map(f => `
+            <button type="button" onclick="setCategory('${f.key}')" class="shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+                category === f.key ? 'bg-brand-blue text-white shadow-lg shadow-blue-200' : 'text-brand-midText border border-brand-border hover:bg-brand-background hover:text-brand-blue'
+            }">${f.label}</button>`).join('');
+    }
+
+    function renderFeed() {
+        const feed = document.getElementById('activityFeed');
+        document.getElementById('activityCount').innerText = `(${total.toLocaleString()})`;
+
+        if (!rows.length) {
+            feed.innerHTML = '<p class="text-brand-lightText text-center py-6">No activity here yet.</p>';
+        } else {
+            let index = 0;
+            feed.innerHTML = `<div class="space-y-6">${groupByDay(rows).map(g => `
+                <section>
+                    <h4 class="flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-brand-lightText mb-2">
+                        ${g.label}
+                        <span class="h-px flex-1 bg-brand-border"></span>
+                        <span class="font-normal normal-case tracking-normal">${g.rows.length}</span>
+                    </h4>
+                    <ul class="rounded-2xl border border-brand-border divide-y divide-brand-border overflow-hidden">
+                        ${g.rows.map(r => activityRow(r, index++)).join('')}
+                    </ul>
+                </section>`).join('')}</div>`;
+        }
+
+        // Pager
+        const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+        const to = Math.min(page * PAGE_SIZE, total);
+        document.getElementById('pager').classList.toggle('hidden', !total);
+        document.getElementById('pagerInfo').innerText = `${from}–${to} of ${total.toLocaleString()} · page ${page} of ${pages}`;
+        document.getElementById('prevPage').disabled = page <= 1;
+        document.getElementById('nextPage').disabled = page >= pages;
+    }
+
+    function renderFocus() {
+        document.getElementById('focusChip').classList.toggle('hidden', !focusUser);
+        document.getElementById('focusChip').classList.toggle('inline-flex', !!focusUser);
+        document.getElementById('focusEmail').innerHTML = focusUser ? focusUser.email : '';
+        const search = document.getElementById('activitySearch');
+        search.disabled = !!focusUser;
+        if (focusUser) search.value = '';
+    }
+
+    // --- 6. Actions ---
+    window.setCategory = function(key) {
+        category = key;
+        page = 1;
+        renderFilters();
+        loadActivity();
+    };
+
+    window.setFocus = function(user) {
+        focusUser = user;
+        page = 1;
+        renderFocus();
+        loadActivity();
+    };
+
+    // Narrow the feed to the user on row `index` of the current page
+    window.focusRow = function(index) {
+        const r = rows[index];
+        if (r?.userId) setFocus({ id: r.userId, email: r.user?.email || r.userId });
+    };
+
+    window.changePage = function(step) {
+        page = Math.min(Math.max(page + step, 1), pages);
+        loadActivity();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    let searchTimer;
+    document.getElementById('activitySearch').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { page = 1; loadActivity(); }, 400);
+    });
+
+    function logout() {
+        localStorage.removeItem('smsglobe_admin_token');
+        window.location.href = '/admin/login';
+    }
+
+    /**
+     * Toggles the mobile sidebar and its overlay
+     */
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebar-overlay').classList.toggle('hidden');
+    }
+
+    // --- 7. Startup ---
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!localStorage.getItem('smsglobe_admin_token')) return;
+        renderFilters();
+        // Opened from User Management's "View activity": start on that one user
+        const params = new URLSearchParams(location.search);
+        if (/^[a-f0-9]{24}$/i.test(params.get('userId') || '')) {
+            return setFocus({ id: params.get('userId'), email: escapeHtmlDeep(params.get('email') || params.get('userId')) });
+        }
+        loadActivity();
+    });
+</script>
+</body>
+</html>

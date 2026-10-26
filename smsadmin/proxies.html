@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - Proxy Management</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 13px; }
+        @media (min-width: 1024px) { body { font-size: 14px; } }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #EAECF0; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group" open>
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+        <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">Proxy Management</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight">Proxy Inventory</h2>
+                    <p class="text-brand-lightText text-xs md:text-sm">Manage Active Packages and Node Deployment</p>
+                </div>
+                <button onclick="openAddProxyModal()" class="bg-brand-blue text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2 active:scale-95">
+                    <span class="text-lg leading-none">+</span> Add Proxy Package
+                </button>
+            </header>
+
+            <div class="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50/50 border-b border-brand-border">
+                            <tr>
+                                <th class="px-6 py-4 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Package</th>
+                                <th class="px-6 py-4 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Category</th>
+                                <th class="px-6 py-4 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Inventory</th>
+                                <th class="px-6 py-4 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText text-center">Activation</th>
+                                <th class="px-6 py-4 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proxy-list" class="divide-y divide-brand-border"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    </div>
+
+    <div id="proxyModal" class="fixed inset-0 bg-black/50 z-[90] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-6 border-b border-brand-border flex justify-between items-center bg-white sticky top-0 z-10">
+                <h3 id="modalTitle" class="text-lg font-bold">Proxy Package Configuration</h3>
+                <button onclick="closeModal()" class="text-brand-lightText hover:text-red-500 transition-colors p-1">✕</button>
+            </div>
+            
+            <form id="proxyForm" class="p-6 grid grid-cols-1 gap-5 overflow-y-auto custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-midText mb-1.5 uppercase tracking-widest">Image URL</label>
+                        <input type="url" id="imageUrl" name="imageUrl" placeholder="https://example.com/proxy.png" class="w-full bg-brand-background/30 border border-brand-border p-3 rounded-xl outline-none focus:border-brand-blue transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-midText mb-1.5 uppercase tracking-widest">Category</label>
+                        <input type="text" id="category" name="category" placeholder="e.g. Residential, Mobile" required class="w-full bg-brand-background/30 border border-brand-border p-3 rounded-xl outline-none focus:border-brand-blue transition-all">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-midText mb-1.5 uppercase tracking-widest">Proxy/Package Name</label>
+                        <input type="text" id="name" name="name" required placeholder="e.g. UK Residential High-Speed" class="w-full bg-brand-background/30 border border-brand-border p-3 rounded-xl outline-none focus:border-brand-blue transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-brand-midText mb-1.5 uppercase tracking-widest">Stock Available</label>
+                        <input type="number" id="stock" name="stock" required placeholder="e.g. 100" class="w-full bg-brand-background/30 border border-brand-border p-3 rounded-xl outline-none focus:border-brand-blue transition-all">
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-2xl border border-brand-border">
+                    <label class="block text-[10px] font-bold text-brand-midText mb-3 uppercase tracking-widest">Inventory & Pricing Plans</label>
+                    <div id="pricingContainer" class="space-y-3"></div>
+                    <button type="button" onclick="addPriceRow()" class="mt-4 text-brand-blue font-bold text-[11px] uppercase flex items-center gap-1 hover:text-blue-700">
+                        <span class="text-base">+</span> Add IP/Price Tier
+                    </button>
+                </div>
+
+            <div class="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
+    <div class="flex justify-between items-center mb-3">
+        <label class="block text-[10px] font-bold text-brand-orange uppercase tracking-widest">Activation Codes (Vending Inventory)</label>
+        <button type="button" onclick="addCodeRow()" class="text-[10px] font-bold bg-brand-orange/10 text-brand-orange px-2 py-1 rounded hover:bg-brand-orange/20 transition-all">
+            + ADD MORE
+        </button>
+    </div>
+
+    <div id="codesContainer" class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+        </div>
+    
+    <p id="codeCountInfo" class="text-[9px] mt-2 text-brand-orange/70 font-bold uppercase tracking-tight">
+        Current Inventory: <span id="inventoryCountDisplay">0</span> Items
+    </p>
+
+    <label class="block text-[10px] font-bold text-brand-orange mb-1.5 mt-4 uppercase tracking-widest">Setup Instructions</label>
+    <textarea id="instructions" rows="3" placeholder="Step-by-step instructions for the user..." class="w-full bg-white border border-brand-border p-3 rounded-xl outline-none focus:border-brand-orange transition-all text-sm"></textarea>
+</div>
+
+
+                <div class="pt-2 sticky bottom-0 bg-white">
+                    <button type="submit" id="submitBtn" class="w-full bg-brand-blue text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 transition-all active:scale-[0.98]">
+                        Deploy Proxy Package
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    let allProxies = [];
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebarOverlay').classList.toggle('hidden');
+    }
+
+    function addPriceRow(ipCount = '', price = '') {
+        const container = document.getElementById('pricingContainer');
+        const row = document.createElement('div');
+        row.className = 'pricing-row flex gap-3 items-center animate-in fade-in duration-300';
+        row.innerHTML = `
+            <div class="flex-1">
+                <input type="number" placeholder="No. of IPs" value="${ipCount}" class="plan-ips w-full bg-white border border-brand-border px-3 py-2.5 rounded-lg text-sm" required>
+            </div>
+            <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-brand-lightText font-bold">₦</span>
+                <input type="number" step="1" placeholder="Price (NGN)" value="${price}" class="plan-price w-full bg-white border border-brand-border pl-7 pr-3 py-2.5 rounded-lg text-sm" required>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="p-2 text-red-400 hover:text-red-600">✕</button>
+        `;
+        container.appendChild(row);
+    }
+
+    // --- DYNAMIC CODE ROWS (VPN STYLE) ---
+    function addCodeRow(value = '') {
+        const container = document.getElementById('codesContainer');
+        const row = document.createElement('div');
+        row.className = 'code-row flex items-center gap-2 animate-in slide-in-from-top-1 duration-200';
+        row.innerHTML = `
+            <div class="flex-1">
+                <input type="text" value="${value}" placeholder="Enter Activation Code" 
+                       class="activation-code-input w-full bg-white border border-brand-border p-3 rounded-xl outline-none focus:border-brand-orange transition-all font-mono text-xs shadow-inner">
+            </div>
+            <button type="button" onclick="removeCodeRow(this)" class="p-2 text-red-400 hover:text-red-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+        `;
+        container.appendChild(row);
+        updateInventoryCount();
+    }
+
+    function removeCodeRow(btn) {
+        btn.parentElement.remove();
+        updateInventoryCount();
+    }
+
+    function updateInventoryCount() {
+        const count = document.querySelectorAll('.activation-code-input').length;
+        const display = document.getElementById('inventoryCountDisplay');
+        if (display) display.innerText = count;
+        
+        const stockInput = document.getElementById('stock');
+        if (stockInput) stockInput.value = count;
+    }
+
+    async function fetchProxies() {
+        const token = localStorage.getItem('smsglobe_admin_token');
+        const list = document.getElementById('proxy-list');
+        try {
+            const res = await fetch('/api/proxies', { 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            const data = await res.json();
+            allProxies = data.proxies || [];
+            
+            if (allProxies.length === 0) {
+                list.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-brand-lightText">No proxy packages found.</td></tr>';
+                return;
+            }
+
+            list.innerHTML = allProxies.map(p => {
+                const plans = p.plans || [];
+                const stockStatus = p.stock > 0 ? `${p.stock} units` : 'Out of Stock';
+                const stockColor = p.stock > 10 ? 'text-brand-midText' : 'text-red-500 font-bold';
+                const startingPrice = plans.length > 0 ? `₦${parseFloat(plans[0].price).toLocaleString()}` : 'N/A';
+
+                return `
+                    <tr class="hover:bg-brand-background/30 transition-colors">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-3">
+                                <img src="${p.imageUrl || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name)}" 
+                                     class="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                                     onerror="this.src='https://placehold.co/40x40?text=Proxy'">
+                                <div>
+                                    <div class="font-bold text-brand-darkText">${p.name}</div>
+                                    <div class="text-[10px] text-brand-lightText font-mono">ID: ${p._id.slice(-6)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-xs font-bold text-brand-blue uppercase">${p.category || 'Standard'}</td>
+                        <td class="px-6 py-5">
+                            <div class="text-xs font-bold text-brand-midText">${plans.length} Tiers (Starts ${startingPrice})</div>
+                            <div class="text-[10px] ${stockColor}">${stockStatus}</div>
+                        </td>
+                        <td class="px-6 py-5 text-center">
+                            <span class="px-2.5 py-1 rounded-full font-bold text-[10px] ${p.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} uppercase">
+                                ${p.stock > 0 ? 'Ready' : 'No Stock'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5 text-right flex justify-end gap-3">
+                            <button onclick="editProxy('${p._id}')" class="text-brand-blue font-bold text-[10px] hover:underline">EDIT</button>
+                            <button onclick="deleteProxy('${p._id}')" class="text-red-500 font-bold text-[10px] hover:underline">DEL</button>
+                        </td>
+                    </tr>`;
+            }).join('');
+        } catch (err) { 
+            list.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-red-500">Error connecting to API.</td></tr>'; 
+        }
+    }
+
+   function editProxy(id) {
+    const proxy = allProxies.find(p => p._id === id);
+    if (!proxy) return;
+
+    const form = document.getElementById('proxyForm');
+    form.dataset.editId = id;
+    form.dataset.updatedAt = proxy.updatedAt || ''; // Server rejects the save if stock changed since
+
+    document.getElementById('modalTitle').innerText = 'Update Proxy Package';
+    document.getElementById('submitBtn').innerText = 'Update Changes';    
+    document.getElementById('name').value = proxy.name || '';
+    document.getElementById('category').value = proxy.category || '';
+    document.getElementById('imageUrl').value = proxy.imageUrl || '';
+    document.getElementById('instructions').value = proxy.instructions || '';
+    const codesContainer = document.getElementById('codesContainer');
+    codesContainer.innerHTML = ''; // Clear previous UI rows
+    
+    if (proxy.activationCodes && Array.isArray(proxy.activationCodes) && proxy.activationCodes.length > 0) {
+        proxy.activationCodes.forEach(code => addCodeRow(code));
+    } else if (proxy.activationCode) {
+        addCodeRow(proxy.activationCode);
+    } else {
+        addCodeRow();
+    }
+    const pricingContainer = document.getElementById('pricingContainer');
+    pricingContainer.innerHTML = '';
+    if (proxy.plans && proxy.plans.length > 0) {
+        proxy.plans.forEach(plan => addPriceRow(plan.ip_count, plan.price));
+    } else {
+        addPriceRow();
+    }
+
+    // Update the visual stock counter
+    updateInventoryCount();
+    
+    document.getElementById('proxyModal').classList.remove('hidden');
+}
+
+   document.getElementById('proxyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const token = localStorage.getItem('smsglobe_admin_token');
+    const editId = e.target.dataset.editId;
+    
+    btn.disabled = true;
+    btn.innerText = 'Processing...';
+
+    // 1. Scrape all activation code inputs from the UI rows
+    const codeInputs = document.querySelectorAll('.activation-code-input');
+    const codes = Array.from(codeInputs)
+        .map(input => input.value.trim())
+        .filter(val => val !== ''); // Remove empty lines
+
+    // 2. Build Payload
+    const payload = {
+        name: document.getElementById('name').value,
+        category: document.getElementById('category').value,
+        imageUrl: document.getElementById('imageUrl').value,
+        instructions: document.getElementById('instructions').value,
+        
+        // Data Structure for the Vending Logic
+        activationCodes: codes,          // The full array
+        stock: codes.length,             // Count becomes the stock
+        activationCode: codes[0] || "",  // Set the first code as the primary preview
+        
+        // Pricing Plans
+        plans: Array.from(document.querySelectorAll('.pricing-row')).map(row => ({
+            ip_count: parseInt(row.querySelector('.plan-ips').value) || 0,
+            price: parseFloat(row.querySelector('.plan-price').value) || 0
+        }))
+    };
+
+    if (editId) {
+        payload.proxyId = editId;
+        payload.expectedUpdatedAt = e.target.dataset.updatedAt;
+    }
+
+    try {
+        const res = await fetch('/api/proxies', {
+            method: editId ? 'PATCH' : 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        
+        if (result.success) {
+            closeModal();
+            fetchProxies(); // Refresh the table
+        } else {
+            notify(result.message || 'Action failed', 'error');
+        }
+    } catch (err) { 
+        console.error("Submit Error:", err);
+        notify('Error connecting to server. Please check your connection.', 'error'); 
+    } finally {
+        btn.disabled = false;
+        btn.innerText = editId ? 'Update Changes' : 'Deploy Proxy Package';
+    }
+});
+
+    async function deleteProxy(id) {
+        if (!(await confirmAction('Are you sure you want to delete this proxy package?', { title: 'Delete proxy package?', confirmText: 'Delete', danger: true }))) return;
+        const token = localStorage.getItem('smsglobe_admin_token');
+        try {
+            const res = await fetch(`/api/proxies?id=${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) fetchProxies();
+            else notify(data.message || 'Delete failed', 'error');
+        } catch (err) { notify('Server error during deletion.', 'error'); }
+    }
+
+    function openAddProxyModal() {
+        const form = document.getElementById('proxyForm');
+        delete form.dataset.editId;
+        delete form.dataset.updatedAt;
+        form.reset();
+        
+        document.getElementById('modalTitle').innerText = 'Proxy Package Configuration';
+        document.getElementById('submitBtn').innerText = 'Deploy Proxy Package';
+        
+        // Reset dynamic containers
+        document.getElementById('codesContainer').innerHTML = '';
+        addCodeRow(); 
+        
+        document.getElementById('pricingContainer').innerHTML = '';
+        addPriceRow();
+        
+        document.getElementById('proxyModal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('proxyModal').classList.add('hidden'); }
+    function logout() { localStorage.removeItem('smsglobe_admin_token'); window.location.href = '/admin/login'; }
+    window.onload = fetchProxies;
+</script>
+</body>
+</html>

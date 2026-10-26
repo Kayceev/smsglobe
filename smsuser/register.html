@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Deemax</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6', orange: '#F9861E', red: '#E31E24', darkText: '#101828',
+                            midText: '#344054', lightText: '#667085', background: '#F0F5FE', border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        /* 1. AUTH CARD (Bare on phones so the form gets the full width; a card from tablet up) */
+        @media (min-width: 768px) {
+            .auth-card {
+                background-color: #FFFFFF;
+                border: 1px solid #EAECF0;
+                border-radius: 28px;
+                padding: 44px;
+                box-shadow: 0 20px 25px -5px rgba(23, 37, 84, 0.05), 0 8px 10px -6px rgba(23, 37, 84, 0.05);
+            }
+            html.dark .auth-card { background-color: #0A0A0A; border-color: #1F1F1F; box-shadow: none; }
+        }
+
+        /* 2. INPUTS (Filled boxes; 16px text stops phones zooming in on focus) */
+        .auth-input { font-size: 16px; background-color: #F7F9FD; }
+        .auth-input:focus { background-color: #FFFFFF; }
+        html.dark .auth-input { background-color: #111111; }
+        html.dark .auth-input:focus { background-color: #0A0A0A; }
+        @media (min-width: 768px) { .auth-input { font-size: 15px; } }
+
+        /* 3. PRIMARY BUTTON (Brand blue into indigo, with a soft glow) */
+        .auth-primary {
+            background-image: linear-gradient(90deg, #0F54C6 0%, #4F46E5 100%);
+            box-shadow: 0 12px 28px -10px rgba(15, 84, 198, 0.6);
+        }
+        .auth-primary:hover { filter: brightness(1.08); }
+    </style>
+</head>
+<body class="bg-brand-background min-h-screen flex flex-col font-sans border-t-2 border-t-brand-red selection:bg-brand-blue selection:text-white">
+
+    <!-- Top Bar (logo on the left, Login / Sign Up switch on the right) -->
+    <nav class="px-4 md:px-8 pt-5 md:pt-6 flex items-center justify-between gap-3">
+        <a href="/dashboard" class="inline-flex">
+            <img src="/assets/logo.png" alt="Deemax" class="h-8 md:h-9 w-auto object-contain">
+        </a>
+        <div class="flex items-center gap-2 md:gap-3">
+            <a href="/login" class="px-4 md:px-5 py-2 md:py-2.5 rounded-xl border border-brand-border text-sm md:text-[15px] font-semibold text-brand-midText hover:border-brand-blue hover:text-brand-blue transition-colors">Login</a>
+            <a href="/register" class="auth-primary px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-sm md:text-[15px] font-bold text-white transition">Sign Up</a>
+        </div>
+    </nav>
+
+    <main class="flex-grow flex items-center justify-center px-4 py-8 md:py-12">
+        <div class="w-full max-w-[440px]">
+
+            <div class="auth-card">
+
+                <!-- Heading -->
+                <div class="mb-8">
+                    <p id="formEyebrow" class="flex items-center gap-2 text-sm font-medium text-brand-blue">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                        <span id="formEyebrowText">Get started</span>
+                    </p>
+                    <h1 id="formTitle" class="text-[28px] md:text-[32px] font-extrabold text-brand-darkText tracking-tight leading-tight mt-2">Join <span class="text-brand-blue">Deemax</span></h1>
+                    <p id="formSubtitle" class="text-[15px] text-brand-lightText mt-1.5 break-words">Numbers, accounts and more, paid from one wallet.</p>
+                </div>
+
+                <!-- Inline Error (replaces browser alerts) -->
+                <div id="formError" class="hidden mb-5 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[13px] font-medium leading-snug" role="alert">
+                    <svg class="w-4 h-4 mt-px shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="formErrorText"></span>
+                </div>
+
+                <!-- Step 1: Registration -->
+                <div id="registrationView">
+                    <form id="registerForm" class="space-y-5" novalidate>
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-brand-midText mb-2">Full name</label>
+                            <input type="text" id="name" name="name" required autocomplete="name"
+                                class="auth-input w-full h-[52px] px-4 rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-400"
+                                placeholder="John Doe">
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-brand-midText mb-2">Email</label>
+                            <input type="email" id="email" name="email" required autocomplete="email"
+                                class="auth-input w-full h-[52px] px-4 rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-400"
+                                placeholder="you@example.com">
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-brand-midText mb-2">Password</label>
+                            <div class="relative">
+                                <input type="password" id="password" name="password" required autocomplete="new-password"
+                                    class="auth-input w-full h-[52px] pl-4 pr-12 rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-400"
+                                    placeholder="Create a password">
+                                <button type="button" id="togglePassword" aria-label="Show or hide password" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-blue transition-colors">
+                                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-brand-midText mb-2">Confirm password</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password"
+                                class="auth-input w-full h-[52px] px-4 rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-400"
+                                placeholder="Type it again">
+                        </div>
+
+                        <div>
+                            <label id="referralLabel" for="friendReferralCode" class="block text-sm font-medium text-brand-midText mb-2">
+                                Referral code <span class="text-brand-lightText font-normal">(optional)</span>
+                            </label>
+                            <input type="text" id="friendReferralCode" name="friendReferralCode" autocomplete="off"
+                                class="auth-input w-full h-[52px] px-4 rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-400 placeholder:normal-case uppercase"
+                                placeholder="E.g. A1B2C3">
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="auth-primary w-full h-[52px] text-white rounded-xl text-base font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                            Create account
+                        </button>
+
+                        <p class="text-xs text-brand-lightText text-center leading-relaxed">
+                            By signing up, you agree to our
+                            <a href="/terms" class="text-brand-blue font-medium hover:underline">Terms</a> and
+                            <a href="/privacy" class="text-brand-blue font-medium hover:underline">Privacy Policy</a>.
+                        </p>
+                    </form>
+
+                    <!-- Google Sign-Up -->
+                    <div class="flex items-center gap-4 my-6">
+                        <div class="flex-grow border-t border-brand-border"></div>
+                        <span class="text-sm text-brand-lightText">or</span>
+                        <div class="flex-grow border-t border-brand-border"></div>
+                    </div>
+
+                    <div id="g_id_onload"
+                         data-client_id="200301370065-fl80h2idsgants6kb6jcuaivkonljs6u.apps.googleusercontent.com"
+                         data-callback="handleGoogleSignup"
+                         data-auto_prompt="false">
+                    </div>
+                    <div class="gsi-skin">
+                        <!-- Dark mode face: Google draws its own button light when it personalises it ("Continue as ..."),
+                             so dark.css shows this instead and keeps Google's real button, invisible, on top to take the click -->
+                        <div class="gsi-face" aria-hidden="true"><svg class="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span>Continue with Google</span></div>
+                        <div id="googleBtn" class="g_id_signin flex justify-center min-h-[44px]"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="outline"
+                             data-text="continue_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="center"
+                             data-width="320">
+                        </div>
+                    </div>
+                    <script>
+                        // Match the Google button to the form width (Google caps it at 400px)
+                        (function () {
+                            const btn = document.getElementById('googleBtn');
+                            btn.dataset.width = Math.min(400, Math.floor(btn.parentElement.parentElement.clientWidth)) || 320;
+                        })();
+                    </script>
+                </div>
+
+                <!-- Step 2: Email Verification (OTP) -->
+                <form id="otpView" class="hidden space-y-5" novalidate>
+                    <div>
+                        <label for="otp" class="block text-sm font-medium text-brand-midText mb-2">6-digit code</label>
+                        <input type="text" id="otp" maxlength="6" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*"
+                            class="auth-input w-full h-14 px-4 text-2xl font-bold tracking-[0.5em] text-center rounded-xl border border-brand-border text-brand-darkText focus:ring-4 focus:ring-blue-100 focus:border-brand-blue outline-none transition-all placeholder:text-gray-300"
+                            placeholder="000000">
+                        <p class="text-sm text-brand-lightText mt-2.5">Can't find it? Check your spam folder.</p>
+                    </div>
+                    <button type="submit" id="verifyBtn" class="auth-primary w-full h-[52px] text-white rounded-xl text-base font-bold transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                        Verify &amp; continue
+                    </button>
+                    <button type="button" onclick="location.reload()" class="w-full text-[15px] text-brand-lightText font-medium hover:text-brand-blue transition-colors">
+                        Wrong email? Go back
+                    </button>
+                </form>
+
+                <p id="footerText" class="text-center mt-8 text-[15px] text-brand-lightText">
+                    Already have an account?
+                    <a href="/login" class="text-brand-blue font-semibold hover:underline">Sign in</a>
+                </p>
+            </div>
+
+            <!-- Footer Links -->
+            <nav class="flex justify-center gap-5 mt-8 text-xs text-brand-lightText">
+                <a href="/terms" class="hover:text-brand-blue transition-colors">Terms</a>
+                <a href="/privacy" class="hover:text-brand-blue transition-colors">Privacy</a>
+                <a href="/support" class="hover:text-brand-blue transition-colors">Support</a>
+            </nav>
+        </div>
+    </main>
+
+<script>
+    let userEmail = ""; // To store email for verification step
+
+    const formError = document.getElementById('formError');
+    const formErrorText = document.getElementById('formErrorText');
+
+    // Shows a message above the form instead of a browser pop-up
+    function showError(message) {
+        formErrorText.textContent = message;
+        formError.classList.remove('hidden');
+        formError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearError() {
+        formError.classList.add('hidden');
+    }
+
+    // --- 1. Referral Link Prefill (?ref=) ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const refCode = new URLSearchParams(window.location.search).get('ref');
+        if (!refCode) return;
+
+        const refInput = document.getElementById('friendReferralCode');
+        refInput.value = refCode.trim().toUpperCase();
+        refInput.classList.add('bg-blue-50', 'border-brand-blue', 'text-brand-blue');
+        refInput.readOnly = true;
+        document.getElementById('referralLabel').innerHTML = `Referral code <span class="text-green-600 font-bold">(applied ✓)</span>`;
+    });
+
+    // --- 2. Unverified Account Return (?verify_email=) ---
+    // Login and the dashboard send unverified users here. Signing up again with the
+    // same email sends a fresh code, so prefill it and explain what to do.
+    (function prefillVerifyEmail() {
+        const pendingEmail = new URLSearchParams(window.location.search).get('verify_email');
+        if (!pendingEmail) return;
+        document.getElementById('email').value = pendingEmail;
+        document.getElementById('formSubtitle').innerText = "Your email isn't verified yet. Fill in the form again to get a new code.";
+    })();
+
+    // --- 3. Password Visibility Toggle (Shows or hides both password fields) ---
+    document.getElementById('togglePassword').addEventListener('click', () => {
+        const passwordFields = [document.getElementById('password'), document.getElementById('confirm_password')];
+        const isHidden = passwordFields[0].type === 'password';
+        passwordFields.forEach(field => { field.type = isHidden ? 'text' : 'password'; });
+
+        document.getElementById('eyeIcon').innerHTML = isHidden
+            ? `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />`
+            : `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />`;
+    });
+
+    // --- 4. Google Signup Handler ---
+    async function handleGoogleSignup(response) {
+        clearError();
+        try {
+            const res = await fetch('/api/google-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idToken: response.credential,
+                    loginType: 'user',
+                    friendReferralCode: document.getElementById('friendReferralCode')?.value || '' // Google signups count as referrals too
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.adminToken) {
+                // Existing admin used Google here: admins only get the admin side
+                localStorage.setItem('smsglobe_admin_token', data.adminToken);
+                localStorage.removeItem('userToken');
+                localStorage.removeItem('userData');
+                window.location.href = '/admin/dashboard';
+            } else if (data.success) {
+                localStorage.setItem('userToken', data.token);
+                if (data.user) localStorage.setItem('userData', JSON.stringify(data.user));
+                window.location.href = '/dashboard';
+            } else {
+                showError(data.message || "Google Signup Failed");
+            }
+        } catch (err) {
+            showError("Connection error during Google signup.");
+        }
+    }
+
+    // --- 5. Standard Email Registration ---
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+        const submitBtn = document.getElementById('submitBtn');
+        const fullName = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const friendReferralCode = document.getElementById('friendReferralCode').value;
+
+        if (!fullName || !email || !password) {
+            showError("Fill in your name, email and password.");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showError("Passwords do not match.");
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Creating Account...";
+
+        try {
+            const response = await fetch('/api/user-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName, email, password, friendReferralCode
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Switch to OTP view
+                userEmail = email;
+                document.getElementById('registrationView').classList.add('hidden');
+                document.getElementById('otpView').classList.remove('hidden');
+                document.getElementById('formEyebrowText').innerText = "Almost done";
+                document.getElementById('formTitle').innerText = "Check your email";
+                document.getElementById('formSubtitle').innerText = `We've sent a 6-digit code to ${email}`;
+                document.getElementById('footerText').classList.add('hidden');
+                document.getElementById('otp').focus();
+            } else {
+                showError(data.message || "Registration failed.");
+            }
+        } catch (err) {
+            showError("A connection error occurred.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Create account";
+        }
+    });
+
+    // --- 6. OTP Verification Handler ---
+    document.getElementById('otpView').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleVerifyOTP();
+    });
+
+    async function handleVerifyOTP() {
+        clearError();
+        const otpValue = document.getElementById('otp').value.trim();
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        if (!/^\d{6}$/.test(otpValue)) {
+            showError("Please enter a valid 6-digit code.");
+            return;
+        }
+
+        verifyBtn.disabled = true;
+        verifyBtn.innerText = "Verifying...";
+
+        try {
+            const response = await fetch('/api/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, otp: otpValue })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // verify-otp signs the user in, so go straight to the dashboard
+                if (data.token) {
+                    localStorage.setItem('userToken', data.token);
+                    if (data.user) localStorage.setItem('userData', JSON.stringify(data.user));
+                    window.location.href = '/dashboard';
+                } else {
+                    window.location.href = '/login';
+                }
+            } else {
+                showError(data.message || "Invalid or expired code.");
+            }
+        } catch (err) {
+            showError("Connection error during verification.");
+        } finally {
+            verifyBtn.disabled = false;
+            verifyBtn.innerText = "Verify & continue";
+        }
+    }
+</script>
+</body>
+</html>

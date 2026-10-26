@@ -46,12 +46,530 @@
       "destination": "/assets/$1"
     },
     {
-      "source": "/smsuser/(.*)",
-      "destination": "/smsuser/$1.html"
+      "source": "/login",
+      "destination": "/smsuser/login"
     },
     {
-      "source": "/smsadmin/(.*)",
-      "destination": "/smsadmin/$1.html"
+      "source": "/register",
+      "destination": "/smsuser/register"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/smsuser/forgot-password"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/smsuser/reset-password"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/smsuser/dashboard"
+    },
+    {
+      "source": "/fund-wallet",
+      "destination": "/smsuser/fund-wallet"
+    },
+    {
+      "source": "/virtual-numbers",
+      "destination": "/smsuser/virtual-numbers"
+    },
+    {
+      "source": "/vpn",
+      "destination": "/smsuser/vpn"
+    },
+    {
+      "source": "/proxies",
+      "destination": "/smsuser/proxies"
+    },
+    {
+      "source": "/accounts",
+      "destination": "/smsuser/accounts"
+    },
+    {
+      "source": "/esim-refill",
+      "destination": "/smsuser/esim-refill"
+    },
+    {
+      "source": "/esim-activation",
+      "destination": "/smsuser/esim-activation"
+    },
+    {
+      "source": "/rdp",
+      "destination": "/smsuser/rdp"
+    },
+    {
+      "source": "/orders",
+      "destination": "/smsuser/orders"
+    },
+    {
+      "source": "/profile",
+      "destination": "/smsuser/profile"
+    },
+    {
+      "source": "/gifts",
+      "destination": "/smsuser/gifts"
+    },
+    {
+      "source": "/support",
+      "destination": "/smsuser/support"
+    },
+    {
+      "source": "/terms",
+      "destination": "/smsuser/terms"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/smsuser/privacy"
+    },
+    {
+      "source": "/maintenance",
+      "destination": "/smsuser/maintenance"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/smsadmin/login"
+    },
+    {
+      "source": "/admin/forgot-password",
+      "destination": "/smsadmin/forgot-password"
+    },
+    {
+      "source": "/admin/reset-password",
+      "destination": "/smsadmin/reset-password"
+    },
+    {
+      "source": "/admin/dashboard",
+      "destination": "/smsadmin/dashboard"
+    },
+    {
+      "source": "/admin/daily-changes",
+      "destination": "/smsadmin/daily-changes"
+    },
+    {
+      "source": "/admin/user-activity",
+      "destination": "/smsadmin/user-activity"
+    },
+    {
+      "source": "/admin/users",
+      "destination": "/smsadmin/users"
+    },
+    {
+      "source": "/admin/sms-numbers",
+      "destination": "/smsadmin/sms-numbers"
+    },
+    {
+      "source": "/admin/accounts",
+      "destination": "/smsadmin/accounts"
+    },
+    {
+      "source": "/admin/vpn",
+      "destination": "/smsadmin/vpn"
+    },
+    {
+      "source": "/admin/proxies",
+      "destination": "/smsadmin/proxies"
+    },
+    {
+      "source": "/admin/esim-refills",
+      "destination": "/smsadmin/esim-refills"
+    },
+    {
+      "source": "/admin/esim-activations",
+      "destination": "/smsadmin/esim-activations"
+    },
+    {
+      "source": "/admin/rdp",
+      "destination": "/smsadmin/rdp"
+    },
+    {
+      "source": "/admin/transactions",
+      "destination": "/smsadmin/transactions"
+    },
+    {
+      "source": "/admin/settings",
+      "destination": "/smsadmin/settings"
+    },
+    {
+      "source": "/admin/user-view",
+      "destination": "/smsadmin/user-view"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin",
+      "destination": "/admin/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/admin/register",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_login",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_login.html",
+      "destination": "/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_create",
+      "destination": "/register",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_create.html",
+      "destination": "/register",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/forgot-password",
+      "destination": "/forgot-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/forgot-password.html",
+      "destination": "/forgot-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/change-password",
+      "destination": "/reset-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/change-password.html",
+      "destination": "/reset-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_dashboard",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_dashboard.html",
+      "destination": "/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/topup",
+      "destination": "/fund-wallet",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/topup.html",
+      "destination": "/fund-wallet",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/sms_number",
+      "destination": "/virtual-numbers",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/sms_number.html",
+      "destination": "/virtual-numbers",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_vpn",
+      "destination": "/vpn",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_vpn.html",
+      "destination": "/vpn",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_proxy",
+      "destination": "/proxies",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_proxy.html",
+      "destination": "/proxies",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_accounts",
+      "destination": "/accounts",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_accounts.html",
+      "destination": "/accounts",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/esim_refill",
+      "destination": "/esim-refill",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/esim_refill.html",
+      "destination": "/esim-refill",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/esim_activation",
+      "destination": "/esim-activation",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/esim_activation.html",
+      "destination": "/esim-activation",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_rdp",
+      "destination": "/rdp",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_rdp.html",
+      "destination": "/rdp",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/order_history",
+      "destination": "/orders",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/order_history.html",
+      "destination": "/orders",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_profile",
+      "destination": "/profile",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/user_profile.html",
+      "destination": "/profile",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/send_gifts",
+      "destination": "/gifts",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/send_gifts.html",
+      "destination": "/gifts",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/support",
+      "destination": "/support",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/support.html",
+      "destination": "/support",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/terms",
+      "destination": "/terms",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/terms.html",
+      "destination": "/terms",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/privacy",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/privacy.html",
+      "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/maintenance",
+      "destination": "/maintenance",
+      "permanent": true
+    },
+    {
+      "source": "/smsuser/maintenance.html",
+      "destination": "/maintenance",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_login",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_login.html",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_create",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_create.html",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/request_password",
+      "destination": "/admin/forgot-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/request_password.html",
+      "destination": "/admin/forgot-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_forgot",
+      "destination": "/admin/reset-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_forgot.html",
+      "destination": "/admin/reset-password",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_dashboard",
+      "destination": "/admin/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_dashboard.html",
+      "destination": "/admin/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_users",
+      "destination": "/admin/users",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_users.html",
+      "destination": "/admin/users",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_numbers",
+      "destination": "/admin/sms-numbers",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_numbers.html",
+      "destination": "/admin/sms-numbers",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_accounts",
+      "destination": "/admin/accounts",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_accounts.html",
+      "destination": "/admin/accounts",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_vpn",
+      "destination": "/admin/vpn",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_vpn.html",
+      "destination": "/admin/vpn",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_proxy",
+      "destination": "/admin/proxies",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/sms_proxy.html",
+      "destination": "/admin/proxies",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/esims_refill",
+      "destination": "/admin/esim-refills",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/esims_refill.html",
+      "destination": "/admin/esim-refills",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/esims_activation",
+      "destination": "/admin/esim-activations",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/esims_activation.html",
+      "destination": "/admin/esim-activations",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/rdp_request",
+      "destination": "/admin/rdp",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/rdp_request.html",
+      "destination": "/admin/rdp",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/transaction_history",
+      "destination": "/admin/transactions",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/transaction_history.html",
+      "destination": "/admin/transactions",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/settings",
+      "destination": "/admin/settings",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/settings.html",
+      "destination": "/admin/settings",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/user-view",
+      "destination": "/admin/user-view",
+      "permanent": true
+    },
+    {
+      "source": "/smsadmin/user-view.html",
+      "destination": "/admin/user-view",
+      "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/expire-sms-orders",
+      "schedule": "0 3 * * *"
     }
   ]
 }

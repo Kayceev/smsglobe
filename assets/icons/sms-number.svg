@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Telephone handset (Buy Number) -->
+<g transform="rotate(-135 16 16) translate(0 2)">
+<path d="M3 15.5C3 10.8 8.8 8 16 8C23.2 8 29 10.8 29 15.5V17.6C29 19 27.8 19.9 26.4 19.6L21.9 18.6C20.8 18.4 20.1 17.4 20.2 16.3L20.3 15.1C18.9 14.7 17.5 14.5 16 14.5C14.5 14.5 13.1 14.7 11.7 15.1L11.8 16.3C11.9 17.4 11.2 18.4 10.1 18.6L5.6 19.6C4.2 19.9 3 19 3 17.6V15.5Z" fill="url(#handsetFill)"/>
+<path d="M6.2 11.6C8.6 10 12 9.1 16 9.1C20 9.1 23.4 10 25.8 11.6" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="0.9" stroke-linecap="round"/>
+</g>
+<defs>
+<linearGradient id="handsetFill" x1="16" y1="8" x2="16" y2="19.7" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF6B6B"/>
+<stop offset="1" stop-color="#C81E28"/>
+</linearGradient>
+</defs>
+</svg>

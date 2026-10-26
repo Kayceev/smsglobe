@@ -1,0 +1,24 @@
+# Files the Vercel CLI must never upload (vercel / vercel --prod deploy from this folder)
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Local database backups (contain user data)
+backups/
+
+# Local Claude Code instructions and tooling
+CLAUDE.md
+.claude/
+
+# Dependencies (Vercel installs its own from package-lock.json)
+node_modules/
+
+# Git, logs and OS files
+.git/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+tailwind.exe
+tailwind.exe.exe

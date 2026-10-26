@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - Dashboard</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 13px; }
+        @media (min-width: 1024px) { body { font-size: 14px; } }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .currency-label { font-size: 0.75rem; font-weight: 700; color: #0F54C6; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+       <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">Dashboard</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full">
+    <header class="grid grid-cols-1 md:flex md:items-center md:justify-between mb-8 gap-4">
+        <div>
+            <h2 class="text-xl md:text-2xl font-bold tracking-tight">Financial Overview</h2>
+            <p class="text-brand-lightText text-xs md:text-sm">Transaction metrics in NGN</p>
+        </div>
+    </header>
+
+    <!-- Overview (4 tiles per row, 2 on phones; the small pill on each tile is today, Lagos time) -->
+    <section class="mb-10 space-y-8">
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">Total (numbers + social &amp; VPN)</h3>
+            <div id="totalTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                <p class="text-xs text-brand-lightText animate-pulse">Loading overview...</p>
+            </div>
+        </div>
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">Numbers</h3>
+            <div id="numbersTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4"></div>
+        </div>
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">Social &amp; VPN</h3>
+            <div id="accountsTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4"></div>
+        </div>
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">Platform</h3>
+            <div id="platformTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4"></div>
+        </div>
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">Supplier balances</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                <div id="smsBowerTile"></div>
+                <div id="sameehaTile"></div>
+            </div>
+        </div>
+        <div>
+            <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">All products (revenue from every product)</h3>
+            <div id="allProductsTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4"></div>
+        </div>
+    </section>
+
+
+    <!-- Monthly History (numbers + social & VPN, orders = received codes and delivered accounts; refunded ones would distort the totals) -->
+    <section class="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-brand-border flex items-center justify-between gap-3">
+            <div>
+                <h3 class="font-bold text-lg text-brand-darkText">Monthly history</h3>
+            </div>
+            <button type="button" id="exportCsvBtn" onclick="exportMonthlyCsv()" disabled class="px-3 py-1.5 border border-brand-border rounded-lg text-xs font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed shrink-0">Export CSV</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-[11px] md:text-xs whitespace-nowrap">
+                <thead class="bg-gray-50 text-brand-lightText uppercase border-b border-brand-border">
+                    <tr>
+                        <th class="px-6 py-3 font-bold">Month</th>
+                        <th class="px-6 py-3 font-bold text-right">Orders</th>
+                        <th class="px-6 py-3 font-bold text-right">Deposits</th>
+                        <th class="px-6 py-3 font-bold text-right">Revenue</th>
+                        <th class="px-6 py-3 font-bold text-right">Cost</th>
+                        <th class="px-6 py-3 font-bold text-right">Profit</th>
+                    </tr>
+                </thead>
+                <tbody id="monthlyList" class="divide-y divide-gray-100">
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-brand-lightText animate-pulse">Loading monthly history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    </main>
+    </div>
+
+<script>
+    /**
+     * Escapes every string in API data before it is rendered with innerHTML.
+     * Names, emails and addresses are typed by customers, so they must never run as HTML.
+     */
+    function escapeHtmlDeep(value) {
+        if (typeof value === 'string') {
+            return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        if (Array.isArray(value)) return value.map(escapeHtmlDeep);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeHtmlDeep(v)]));
+        }
+        return value;
+    }
+
+
+    /**
+     * Helper to format numbers as Naira currency
+     */
+    const fmtNGN = (val) => `₦${(val || 0).toLocaleString(undefined, { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    })}`;
+
+    /**
+     * Helper to safely update text content of a UI element by ID
+     */
+    function updateUIElement(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerText = value;
+        } else {
+            console.warn(`UI Element not found: ${id}`);
+        }
+    }
+
+    async function fetchDashboardData() {
+        const token = localStorage.getItem('smsglobe_admin_token');
+        const container = document.getElementById('sales-container');
+        
+        if (!token) {
+            console.error("No admin token found. Redirecting to login...");
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/dashboard-stats', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = escapeHtmlDeep(await response.json());
+
+            if (data.success) {
+                // All Products Revenue (same 4-tile row as the overview)
+                const rev = data.revenue || {};
+                document.getElementById('allProductsTiles').innerHTML = [
+                    tile({ label: 'Total revenue', value: naira(rev.totalRevenue), icon: 'wallet', tone: 'green', sub: `${naira(rev.yearly)} this year`, accent: true }),
+                    tile({ label: 'Today', value: naira(rev.daily), icon: 'trend', tone: 'blue' }),
+                    tile({ label: 'Last 7 days', value: naira(rev.weekly), icon: 'trend', tone: 'blue' }),
+                    tile({ label: 'This month', value: naira(rev.monthly), icon: 'trend', tone: 'blue' })
+                ].join('');
+
+                // Table Render Logic
+                if (container) {
+                    if (data.recentOrders && data.recentOrders.length > 0) {
+                        container.className = "overflow-x-auto"; 
+                        container.innerHTML = `
+                            <table class="w-full text-left text-[11px] md:text-xs">
+                                <thead class="bg-gray-50 text-brand-lightText uppercase border-b border-brand-border">
+                                    <tr>
+                                        <th class="px-6 py-3 font-bold">Time</th>
+                                        <th class="px-6 py-3 font-bold">Customer</th>
+                                        <th class="px-6 py-3 font-bold">Product</th>
+                                        <th class="px-6 py-3 font-bold text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${data.recentOrders.map(order => `
+                                        <tr class="hover:bg-gray-50/50">
+                                            <td class="px-6 py-4 text-brand-lightText">
+                                                ${new Date(order.createdAt).toLocaleDateString([], {month:'short', day:'numeric'})}, 
+                                                ${new Date(order.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                            </td>
+                                            <td class="px-6 py-4 font-medium text-brand-darkText">${order.userEmail}</td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2 py-1 rounded-md bg-brand-background text-brand-blue font-bold text-[10px] uppercase">
+                                                    ${(order.productType || 'Service').replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right font-bold text-brand-blue">${fmtNGN(order.amount)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>`;
+                    } else {
+                        container.innerHTML = `
+                            <div class="p-10 text-center text-brand-lightText italic">
+                                No successful sales recorded yet.
+                            </div>`;
+                    }
+                }
+            } else {
+                console.error("Dashboard error:", data.message);
+            }
+        } catch (err) {
+            console.error("Network/Server Error:", err);
+        }
+    }
+
+  
+    // Initialize dashboard on load
+    document.addEventListener('DOMContentLoaded', fetchDashboardData);
+
+    // --- OVERVIEW TILES & MONTHLY HISTORY (modelled on the DanSMS overview) ---
+    const naira = amount => amount == null ? '—' : `₦${Math.round(Number(amount)).toLocaleString()}`;
+    const usd = amount => amount == null ? '—' : `$${Number(amount)}`; // Exactly as SMSBower sends it, no rounding
+    const plusNaira = amount => `+${naira(amount)}`;
+    const plusCount = count => `+${Number(count || 0).toLocaleString()}`;
+    const signedNaira = amount => `${amount < 0 ? '−' : '+'}${naira(Math.abs(amount))}`;
+
+    // Admin GET with the token; a 401 sends the admin back to login
+    async function adminGet(path) {
+        const res = await fetch(`/api/${path}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('smsglobe_admin_token')}` } });
+        if (res.status === 401) { logout(); throw new Error('Session expired'); }
+        return escapeHtmlDeep(await res.json());
+    }
+
+    const TILE_ICONS = {
+        wallet: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
+        trend: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+        card: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
+        cart: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
+        chat: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
+        users: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+        server: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01'
+    };
+    const TILE_TONES = {
+        green: 'bg-green-50 text-green-600 border-green-100',
+        blue: 'bg-blue-50 text-brand-blue border-blue-100',
+        red: 'bg-red-50 text-red-500 border-red-100',
+        orange: 'bg-orange-50 text-brand-orange border-orange-100',
+        violet: 'bg-violet-50 text-violet-600 border-violet-100'
+    };
+
+    /**
+     * One overview tile: label, big value, tinted icon, an optional second line and "today" pill.
+     * Tiles fill their grid cell, so every tile in a row is the same height.
+     */
+    function tile({ label, value, icon, tone, sub = null, today = null, todayTone = null, todayTitle = 'Today', accent = false }) {
+        const pillTone = todayTone === 'up' ? 'bg-green-50 text-green-700 border-green-200'
+            : todayTone === 'down' ? 'bg-red-50 text-red-600 border-red-200'
+            : 'bg-gray-50 text-brand-midText border-brand-border';
+        return `
+            <div class="h-full flex flex-col justify-between gap-2 sm:gap-3 bg-white rounded-2xl border ${accent ? 'border-blue-200 shadow-md shadow-blue-900/5' : 'border-brand-border shadow-sm'} p-3 sm:p-5">
+                <div class="flex items-start justify-between gap-2 sm:gap-3">
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText leading-snug">${label}</p>
+                        <p class="text-base sm:text-2xl font-bold mt-1.5 sm:mt-2 tabular-nums break-words ${accent ? 'text-brand-blue' : 'text-brand-darkText'}">${value}</p>
+                        ${sub ? `<p class="text-[10px] sm:text-[11px] text-brand-lightText mt-1">${sub}</p>` : ''}
+                    </div>
+                    <span class="hidden sm:flex w-10 h-10 rounded-full border items-center justify-center shrink-0 ${TILE_TONES[tone]}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${TILE_ICONS[icon]}"/></svg>
+                    </span>
+                </div>
+                <div class="flex justify-end min-h-[22px]">
+                    ${today != null ? `<span title="${todayTitle}" class="text-[11px] font-semibold px-2 py-0.5 rounded-md border tabular-nums ${pillTone}">${today}</span>` : ''}
+                </div>
+            </div>`;
+    }
+
+    let monthlyRows = [];
+
+    async function loadOverview() {
+        try {
+            const data = await adminGet('sms-stats');
+            if (!data.success) throw new Error(data.message);
+            const { total: all, numbers: n, accounts: a, platform: p } = data;
+            const { total: tAll, numbers: t, accounts: tAcc } = data.today;
+
+            // 1. Total (Numbers + Social & VPN)
+            document.getElementById('totalTiles').innerHTML = [
+                tile({ label: 'Total revenue', value: naira(all.revenue), icon: 'wallet', tone: 'green', today: plusNaira(tAll.revenue), accent: true }),
+                tile({ label: 'Total profit', value: naira(all.profit), icon: 'trend', tone: 'blue', today: signedNaira(tAll.profit), todayTone: tAll.profit < 0 ? 'down' : null, accent: true }),
+                tile({ label: 'Total cost', value: naira(all.cost), icon: 'card', tone: 'red', today: plusNaira(tAll.cost) }),
+                tile({ label: 'Total orders', value: Number(all.orders).toLocaleString(), icon: 'cart', tone: 'blue', today: plusCount(tAll.orders) })
+            ].join('');
+
+            // 2. Numbers
+            document.getElementById('numbersTiles').innerHTML = [
+                tile({ label: 'Numbers revenue', value: naira(n.revenue), icon: 'wallet', tone: 'green', today: plusNaira(t.revenue) }),
+                tile({ label: 'Numbers profit', value: naira(n.profit), icon: 'trend', tone: 'blue', today: signedNaira(t.profit), todayTone: t.profit < 0 ? 'down' : null }),
+                tile({ label: 'Numbers cost', value: naira(n.cost), icon: 'card', tone: 'red', today: plusNaira(t.cost) }),
+                tile({ label: 'Number orders', value: Number(n.orders).toLocaleString(), icon: 'cart', tone: 'blue',
+                    sub: `${Number(n.received).toLocaleString()} received OTPs (+${Number(t.received).toLocaleString()} today)`, today: plusCount(t.orders) })
+            ].join('');
+
+            // 3. Social & VPN (both from Sameeha)
+            document.getElementById('accountsTiles').innerHTML = [
+                tile({ label: 'Social & VPN revenue', value: naira(a.revenue), icon: 'wallet', tone: 'green', today: plusNaira(tAcc.revenue) }),
+                tile({ label: 'Social & VPN profit', value: naira(a.profit), icon: 'trend', tone: 'blue', today: signedNaira(tAcc.profit), todayTone: tAcc.profit < 0 ? 'down' : null }),
+                tile({ label: 'Social & VPN cost', value: naira(a.cost), icon: 'card', tone: 'red', today: plusNaira(tAcc.cost) }),
+                tile({ label: 'Social & VPN orders', value: Number(a.orders).toLocaleString(), icon: 'cart', tone: 'blue', today: plusCount(tAcc.orders) })
+            ].join('');
+
+            // 4. Platform (supplier balances fill in from their own calls)
+            document.getElementById('platformTiles').innerHTML = [
+                tile({ label: 'Users', value: Number(p.userCount).toLocaleString(), icon: 'users', tone: 'blue', today: plusCount(p.newUsersToday) }),
+                tile({ label: "Users' balance", value: naira(p.userBalance), icon: 'wallet', tone: 'orange', today: signedNaira(p.netToday),
+                    todayTone: p.netToday < 0 ? 'down' : (p.netToday > 0 ? 'up' : null),
+                    todayTitle: `Today: +${naira(p.depositsToday)} deposited, ${p.spentToday >= 0 ? `−${naira(p.spentToday)} spent` : `+${naira(-p.spentToday)} refunded (more than spent)`}` }),
+                tile({ label: 'Total deposited', value: naira(p.totalDeposits), icon: 'card', tone: 'green', today: plusNaira(p.depositsToday), todayTitle: 'Today (includes admin credits)' })
+            ].join('');
+
+            // 5. Monthly History
+            monthlyRows = data.months || [];
+            renderMonthly();
+        } catch (err) {
+            console.error("Overview Error:", err);
+            document.getElementById('totalTiles').innerHTML = '<p class="text-red-500 text-xs">Could not load the overview.</p>';
+        }
+    }
+
+    // --- SUPPLIER BALANCES ---
+    // Each wallet loads on its own so a slow vendor never holds up the tiles
+    const LOADING_VALUE = '<span class="text-brand-lightText text-sm">Loading...</span>';
+    const UNAVAILABLE_VALUE = '<span class="text-red-500 text-sm">Unavailable</span>';
+
+    async function loadSmsBowerBalance() {
+        const slot = document.getElementById('smsBowerTile');
+        slot.innerHTML = tile({ label: 'SMSBower balance (numbers)', value: LOADING_VALUE, icon: 'server', tone: 'violet' });
+        try {
+            const data = await adminGet('smsbower-balance');
+            slot.innerHTML = tile({
+                label: 'SMSBower balance (numbers)',
+                value: data.success ? usd(data.balanceUsd) : UNAVAILABLE_VALUE,
+                icon: 'server', tone: 'violet',
+                today: data.success ? `≈ ${naira(data.balanceNGN)}` : null, todayTitle: 'At the current USD rate'
+            });
+        } catch (err) {
+            slot.innerHTML = tile({ label: 'SMSBower balance (numbers)', value: UNAVAILABLE_VALUE, icon: 'server', tone: 'violet' });
+        }
+    }
+
+    async function loadSameehaBalance() {
+        const slot = document.getElementById('sameehaTile');
+        slot.innerHTML = tile({ label: 'Sameeha balance (social &amp; VPN)', value: LOADING_VALUE, icon: 'server', tone: 'violet' });
+        try {
+            const data = await adminGet('sameeha-balance');
+            slot.innerHTML = tile({
+                label: 'Sameeha balance (social &amp; VPN)',
+                value: data.success ? naira(data.balanceNGN) : UNAVAILABLE_VALUE,
+                icon: 'server', tone: 'violet',
+                sub: data.success ? null : data.message
+            });
+        } catch (err) {
+            slot.innerHTML = tile({ label: 'Sameeha balance (social &amp; VPN)', value: UNAVAILABLE_VALUE, icon: 'server', tone: 'violet' });
+        }
+    }
+
+    function formatMonth(yyyymm) {
+        const [y, m] = String(yyyymm).split('-').map(Number);
+        return y && m ? new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }) : yyyymm;
+    }
+
+
+    function renderMonthly() {
+        const tbody = document.getElementById('monthlyList');
+        document.getElementById('exportCsvBtn').disabled = !monthlyRows.length;
+        if (!monthlyRows.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-brand-lightText">No orders yet.</td></tr>';
+            return;
+        }
+
+        const totals = monthlyRows.reduce((acc, m) => ({
+            orders: acc.orders + m.orders, received: acc.received + m.received, deposits: acc.deposits + m.deposits,
+            revenue: acc.revenue + m.revenue, cost: acc.cost + m.cost, profit: acc.profit + m.profit
+        }), { orders: 0, received: 0, deposits: 0, revenue: 0, cost: 0, profit: 0 });
+
+        const row = (m, label, isTotal = false) => `
+            <tr class="${isTotal ? 'bg-gray-50/70 font-bold border-t-2 border-brand-border' : 'hover:bg-gray-50/50'}">
+                <td class="px-6 py-3 ${isTotal ? '' : 'font-semibold text-brand-darkText'}">${label}</td>
+                <td class="px-6 py-3 text-right tabular-nums">${m.received.toLocaleString()}</td>
+                <td class="px-6 py-3 text-right tabular-nums">${naira(m.deposits)}</td>
+                <td class="px-6 py-3 text-right tabular-nums">${naira(m.revenue)}</td>
+                <td class="px-6 py-3 text-right tabular-nums text-brand-lightText">${m.cost ? naira(m.cost) : '—'}</td>
+                <td class="px-6 py-3 text-right tabular-nums ${m.profit < 0 ? 'text-red-600' : 'text-brand-blue'}">${m.cost ? naira(m.profit) : '—'}</td>
+            </tr>`;
+
+        tbody.innerHTML = monthlyRows.map(m => row(m, formatMonth(m.month))).join('')
+            + (monthlyRows.length > 1 ? row(totals, 'All-time', true) : '');
+    }
+
+    function exportMonthlyCsv() {
+        const header = ['Month', 'Orders', 'Deposits (NGN)', 'Revenue (NGN)', 'Cost (NGN)', 'Profit (NGN)'];
+        const rows = monthlyRows.map(m => [m.month, m.received, m.deposits, m.revenue, m.cost, m.profit]);
+        const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `deemax-monthly-${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!localStorage.getItem('smsglobe_admin_token')) return;
+        loadOverview();
+        loadSmsBowerBalance();
+        loadSameehaBalance();
+    });
+
+
+function logout() {
+    localStorage.removeItem('smsglobe_admin_token');
+    window.location.href = '/admin/login';
+}
+
+/**
+ * Toggles the mobile sidebar and its overlay
+ */
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar && overlay) {
+        // Toggle the translation class (moves it in/out of view)
+        sidebar.classList.toggle('-translate-x-full');
+        
+        // Toggle the hidden class on the overlay
+        overlay.classList.toggle('hidden');
+    }
+}
+
+// 2. Updated Initialization
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('smsglobe_admin_token');
+    
+    if (!token) {
+        // Redirect immediately if not logged in
+        window.location.href = '/admin/login';
+        return;
+    }
+
+    await fetchDashboardData();
+});
+</script>
+</body>
+</html>

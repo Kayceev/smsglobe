@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - Daily Changes</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 13px; }
+        @media (min-width: 1024px) { body { font-size: 14px; } }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        /* 1. The native picker follows the theme (the input itself is invisible) */
+        html.dark input[type="date"] { color-scheme: dark; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+       <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">Daily Changes</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full min-w-0">
+    <!-- Header Row (title, chosen day, and the day controls) -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+        <div>
+            <h2 class="text-xl md:text-2xl font-bold tracking-tight">Daily Changes</h2>
+            <p id="daySubtitle" class="text-brand-lightText text-xs md:text-sm">&nbsp;</p>
+        </div>
+        <div class="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+            <button type="button" onclick="setDay(shiftDay(viewDate, -1))" class="shrink-0 p-2 bg-white border border-brand-border rounded-xl text-brand-midText hover:bg-brand-background hover:text-brand-blue" aria-label="Previous day">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <!-- The native date box clips on phones, so show our own label and lay the real (invisible) input over it -->
+            <label class="relative flex-1 sm:flex-none sm:w-32 flex items-center justify-center bg-white border border-brand-border rounded-xl px-3 py-2 text-sm font-bold cursor-pointer focus-within:border-brand-blue">
+                <span id="dayLabel" class="whitespace-nowrap tabular-nums"></span>
+                <input id="dayInput" type="date" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Pick a day">
+            </label>
+            <button type="button" id="nextDayBtn" onclick="setDay(shiftDay(viewDate, 1))" class="shrink-0 p-2 bg-white border border-brand-border rounded-xl text-brand-midText hover:bg-brand-background hover:text-brand-blue disabled:opacity-40 disabled:cursor-not-allowed" aria-label="Next day">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <!-- Compare: pick a second day and every card shows the change against it -->
+            <label id="compareBox" class="relative shrink-0 inline-flex items-center rounded-xl border px-3 py-2 text-sm font-bold cursor-pointer tabular-nums transition-colors">
+                <span id="compareLabel">Compare</span>
+                <input id="compareInput" type="date" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Pick a day to compare with">
+            </label>
+            <button type="button" id="clearCompareBtn" onclick="setCompare('')" class="hidden shrink-0 p-2 bg-white border border-brand-border rounded-xl text-brand-midText hover:bg-brand-background hover:text-red-500" aria-label="Stop comparing">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <button type="button" onclick="loadDays()" class="shrink-0 p-2 bg-white border border-brand-border rounded-xl text-brand-midText hover:bg-brand-background hover:text-brand-blue" aria-label="Refresh">
+                <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="dailyBody" class="transition-opacity">
+        <p class="text-xs text-brand-lightText animate-pulse mt-6">Loading daily stats...</p>
+    </div>
+    </main>
+    </div>
+    </div>
+
+<script>
+    // --- 1. Helpers ---
+    /**
+     * Escapes every string in API data before it is rendered with innerHTML.
+     */
+    function escapeHtmlDeep(value) {
+        if (typeof value === 'string') {
+            return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        if (Array.isArray(value)) return value.map(escapeHtmlDeep);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeHtmlDeep(v)]));
+        }
+        return value;
+    }
+
+    // Admin GET with the token; a 401 sends the admin back to login
+    async function adminGet(path) {
+        const res = await fetch(`/api/${path}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('smsglobe_admin_token')}` } });
+        if (res.status === 401) { logout(); throw new Error('Session expired'); }
+        return escapeHtmlDeep(await res.json());
+    }
+
+    const naira = amount => `₦${Math.round(Number(amount || 0)).toLocaleString()}`;
+    const signedNaira = amount => `${amount < 0 ? '−' : '+'}${naira(Math.abs(amount))}`;
+
+    // --- 2. Day Helpers (Lagos days as YYYY-MM-DD; noon UTC stops the browser shifting the day) ---
+    const lagosToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' });
+    const shiftDay = (ymd, n) => new Date(Date.parse(`${ymd}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+
+    // "2026-05-05" -> "5/5/26" (day/month/year, as Nigeria writes it)
+    const shortDayLabel = ymd => {
+        const [y, m, d] = ymd.split('-');
+        return `${Number(d)}/${Number(m)}/${y.slice(2)}`;
+    };
+    const longDayLabel = ymd => new Date(`${ymd}T12:00:00Z`).toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'
+    });
+
+    /** "Today" / "Yesterday" / "Thu, 8 Oct" for the trend rows. */
+    function trendDayLabel(ymd) {
+        const today = lagosToday();
+        if (ymd === today) return 'Today';
+        if (ymd === shiftDay(today, -1)) return 'Yesterday';
+        const sameYear = ymd.slice(0, 4) === today.slice(0, 4);
+        return new Date(`${ymd}T12:00:00Z`).toLocaleDateString('en-GB', {
+            weekday: 'short', day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }), timeZone: 'UTC'
+        });
+    }
+
+    /**
+     * "+25%" against the other day, plus a tone. `invert` flips the tone where going up is bad (cost).
+     */
+    function dayDelta(cur, prev, { money = false, invert = false } = {}) {
+        const c = Number(cur || 0);
+        const p = Number(prev || 0);
+        const diff = c - p;
+        if (diff === 0) return { text: 'No change', tone: null };
+        const sign = diff < 0 ? '−' : '+';
+        // Nothing on the other day: a percentage is meaningless, so show the amount
+        const text = p !== 0
+            ? `${sign}${Math.abs((diff / Math.abs(p)) * 100).toFixed(0)}%`
+            : `${sign}${money ? naira(Math.abs(diff)) : Math.abs(diff).toLocaleString()}`;
+        const good = invert ? diff < 0 : diff > 0;
+        return { text, tone: good ? 'up' : 'down' };
+    }
+
+    // --- 3. Cards (same look as the dashboard tiles, in a compact size) ---
+    const TILE_ICONS = {
+        wallet: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
+        trend: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+        card: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
+        cart: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
+        chat: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z',
+        users: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
+    };
+    const TILE_TONES = {
+        green: 'bg-green-50 text-green-600 border-green-100',
+        blue: 'bg-blue-50 text-brand-blue border-blue-100',
+        red: 'bg-red-50 text-red-500 border-red-100',
+        orange: 'bg-orange-50 text-brand-orange border-orange-100'
+    };
+    const PILL_TONES = {
+        up: 'bg-green-50 text-green-700 border-green-200',
+        down: 'bg-red-50 text-red-600 border-red-200'
+    };
+    const NEUTRAL_PILL = 'bg-gray-50 text-brand-midText border-brand-border';
+    const cardShell = accent => `h-full flex flex-col justify-between bg-white rounded-2xl border ${accent ? 'border-blue-200 shadow-md shadow-blue-900/5' : 'border-brand-border shadow-sm'} p-3 sm:p-5`;
+
+    /** One day's figure, with the change pill when there is a day to compare with. */
+    function statTile({ label, value, icon, tone, accent = false, pill = null, pillTone = null, pillTitle = '' }) {
+        return `
+            <div class="${cardShell(accent)}">
+                <div class="flex items-start justify-between gap-2 sm:gap-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText leading-snug truncate">${label}</p>
+                        <p class="text-base sm:text-2xl font-bold mt-1.5 sm:mt-2 tabular-nums break-words ${accent ? 'text-brand-blue' : 'text-brand-darkText'}">${value}</p>
+                    </div>
+                    <span class="hidden sm:flex w-10 h-10 rounded-full border items-center justify-center shrink-0 ${TILE_TONES[tone]}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${TILE_ICONS[icon]}"/></svg>
+                    </span>
+                </div>
+                ${pill != null ? `
+                <div class="mt-2 sm:mt-3 flex justify-end">
+                    <span title="${pillTitle}" class="text-[11px] font-semibold px-2 py-0.5 rounded-md border tabular-nums ${PILL_TONES[pillTone] || NEUTRAL_PILL}">${pill}</span>
+                </div>` : ''}
+            </div>`;
+    }
+
+    /**
+     * Compare-mode card: the viewed day (A) on top with the change beside its date,
+     * the compare day (B) under the divider. Fixed rows keep neighbouring cards lined up.
+     */
+    function compareTile({ label, a, b, delta, accent = false }) {
+        return `
+            <div class="${cardShell(accent)}">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText truncate">${label}</p>
+                <p class="mt-1.5 sm:mt-2 text-base sm:text-2xl font-bold tabular-nums truncate ${accent ? 'text-brand-blue' : 'text-brand-darkText'}">${a.value}</p>
+                <div class="mt-0.5 flex items-center justify-between gap-2">
+                    <span class="text-[10px] sm:text-xs text-brand-lightText tabular-nums">${shortDayLabel(a.date)}</span>
+                    <span class="shrink-0 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-md border tabular-nums ${PILL_TONES[delta.tone] || NEUTRAL_PILL}">${delta.text}</span>
+                </div>
+                <div class="mt-2 pt-2 border-t border-brand-border">
+                    <p class="text-sm sm:text-base font-semibold tabular-nums text-brand-midText truncate">${b.value}</p>
+                    <p class="text-[10px] sm:text-xs text-brand-lightText tabular-nums">${shortDayLabel(b.date)}</p>
+                </div>
+            </div>`;
+    }
+
+    // --- 4. State & Loading ---
+    let viewDate = lagosToday();
+    let rows = [];
+    let loadError = '';
+    let isLoading = false;
+    let compareDate = ''; // '' = no compare day picked
+    let compareRow = null;
+    let loadToken = 0; // Ignores replies for a day the admin already left
+    let compareToken = 0;
+
+    async function loadDays() {
+        const myToken = ++loadToken;
+        isLoading = true;
+        render();
+        try {
+            const data = await adminGet(`daily-stats?date=${viewDate}&days=14`);
+            if (myToken !== loadToken) return;
+            if (!data.success) throw new Error(data.message);
+            rows = Array.isArray(data.rows) ? data.rows : [];
+            loadError = '';
+        } catch (err) {
+            if (myToken !== loadToken) return;
+            loadError = err.message || 'Failed to load daily stats.';
+        }
+        isLoading = false;
+        render();
+    }
+
+    async function loadCompare() {
+        const myToken = ++compareToken;
+        compareRow = null;
+        if (!compareDate) return render();
+        render();
+        try {
+            const data = await adminGet(`daily-stats?date=${compareDate}&days=1`);
+            if (myToken !== compareToken) return;
+            const list = data.success && Array.isArray(data.rows) ? data.rows : [];
+            compareRow = list.length ? list[list.length - 1] : null;
+        } catch (err) {
+            if (myToken !== compareToken) return;
+            compareRow = null;
+        }
+        render();
+    }
+
+    function setDay(ymd) {
+        const today = lagosToday();
+        if (!ymd) return;
+        viewDate = ymd > today ? today : ymd;
+        loadDays();
+    }
+
+    function setCompare(ymd) {
+        const today = lagosToday();
+        compareDate = ymd && ymd > today ? today : (ymd || '');
+        loadCompare();
+    }
+
+    // --- 5. Rendering ---
+    function renderControls(prev) {
+        const today = lagosToday();
+        document.getElementById('daySubtitle').innerText = longDayLabel(viewDate)
+            + (prev ? ` · compared with ${longDayLabel(prev.date)}` : compareDate ? ' · loading comparison...' : '');
+        document.getElementById('dayLabel').innerText = shortDayLabel(viewDate);
+        const dayInput = document.getElementById('dayInput');
+        dayInput.value = viewDate;
+        dayInput.max = today;
+        document.getElementById('nextDayBtn').disabled = viewDate >= today;
+
+        const compareInput = document.getElementById('compareInput');
+        compareInput.value = compareDate;
+        compareInput.max = today;
+        document.getElementById('compareLabel').innerText = compareDate ? shortDayLabel(compareDate) : 'Compare';
+        document.getElementById('compareBox').className = `relative shrink-0 inline-flex items-center rounded-xl border px-3 py-2 text-sm font-bold cursor-pointer tabular-nums transition-colors ${
+            compareDate ? 'bg-blue-50 border-blue-200 text-brand-blue' : 'bg-white border-brand-border text-brand-midText hover:bg-brand-background hover:text-brand-blue'
+        }`;
+        document.getElementById('clearCompareBtn').classList.toggle('hidden', !compareDate);
+        document.getElementById('refreshIcon').classList.toggle('animate-spin', isLoading);
+    }
+
+    function render() {
+        const today = lagosToday();
+        const body = document.getElementById('dailyBody');
+        const day = rows.length ? rows[rows.length - 1] : null;
+        const dayBefore = rows.length > 1 ? rows[rows.length - 2] : null;
+        // What the pills compare against: the picked day, else yesterday when viewing today
+        const prev = compareDate ? (compareRow?.date === compareDate ? compareRow : null) : (viewDate === today ? dayBefore : null);
+        renderControls(prev);
+
+        if (loadError) {
+            body.innerHTML = `
+                <div class="mt-6 text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                    <span>${loadError}</span>
+                    <button type="button" onclick="loadDays()" class="px-3 py-1 border border-red-200 rounded-lg text-xs font-bold hover:bg-white">Retry</button>
+                </div>`;
+            return;
+        }
+        if (!day) {
+            body.innerHTML = '<p class="text-xs text-brand-lightText animate-pulse mt-6">Loading daily stats...</p>';
+            return;
+        }
+        body.classList.toggle('opacity-60', isLoading || day.date !== viewDate);
+
+        const sum = (r, key) => r ? Number(r.numbers[key] || 0) + Number(r.accounts[key] || 0) : 0;
+        const card = (label, cur, before, { money = false, invert = false, signed = false, icon, tone, accent = false } = {}) => {
+            const delta = dayDelta(cur, before, { money, invert });
+            const fmt = value => {
+                const n = Number(value || 0);
+                if (signed) return signedNaira(n);
+                return money ? naira(n) : n.toLocaleString();
+            };
+            if (compareDate && prev) {
+                return compareTile({ label, accent, a: { date: day.date, value: fmt(cur) }, b: { date: prev.date, value: fmt(before) }, delta });
+            }
+            return statTile({
+                label, value: fmt(cur), icon, tone, accent,
+                pill: prev ? delta.text : null,
+                pillTone: delta.tone,
+                pillTitle: prev ? `vs ${longDayLabel(prev.date)}: ${fmt(before)}` : ''
+            });
+        };
+        const section = (title, cards) => `
+            <div class="mt-6 sm:mt-8">
+                <h3 class="text-[11px] font-bold uppercase tracking-widest text-brand-midText mb-3">${title}</h3>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">${cards.join('')}</div>
+            </div>`;
+
+        // The first row only exists to give the oldest visible day its comparison
+        const trend = rows.slice(1).reverse();
+        const netClass = net => net < 0 ? 'text-red-600' : net > 0 ? 'text-green-700' : '';
+        const td = 'px-4 py-3 text-right tabular-nums whitespace-nowrap';
+
+        body.innerHTML = [
+            section('Total (numbers + social &amp; VPN)', [
+                card('Revenue', sum(day, 'revenue'), sum(prev, 'revenue'), { money: true, icon: 'wallet', tone: 'green', accent: true }),
+                card('Profit', sum(day, 'profit'), sum(prev, 'profit'), { money: true, icon: 'trend', tone: 'blue', accent: true }),
+                card('Cost', sum(day, 'cost'), sum(prev, 'cost'), { money: true, invert: true, icon: 'card', tone: 'red' }),
+                card('Orders', sum(day, 'orders'), sum(prev, 'orders'), { icon: 'cart', tone: 'blue' })
+            ]),
+            section('Numbers', [
+                card('Numbers revenue', day.numbers.revenue, prev?.numbers.revenue, { money: true, icon: 'wallet', tone: 'green' }),
+                card('Numbers profit', day.numbers.profit, prev?.numbers.profit, { money: true, icon: 'trend', tone: 'blue' }),
+                card('Numbers cost', day.numbers.cost, prev?.numbers.cost, { money: true, invert: true, icon: 'card', tone: 'red' }),
+                card('Received OTPs', day.numbers.received, prev?.numbers.received, { icon: 'chat', tone: 'green' })
+            ]),
+            section('Social &amp; VPN', [
+                card('Social &amp; VPN revenue', day.accounts.revenue, prev?.accounts.revenue, { money: true, icon: 'wallet', tone: 'green' }),
+                card('Social &amp; VPN profit', day.accounts.profit, prev?.accounts.profit, { money: true, icon: 'trend', tone: 'blue' }),
+                card('Social &amp; VPN cost', day.accounts.cost, prev?.accounts.cost, { money: true, invert: true, icon: 'card', tone: 'red' }),
+                card('Social &amp; VPN orders', day.accounts.orders, prev?.accounts.orders, { icon: 'cart', tone: 'blue' })
+            ]),
+            section('Platform', [
+                card('New users', day.newUsers, prev?.newUsers, { icon: 'users', tone: 'blue' }),
+                card('Deposits', day.balance.deposits, prev?.balance.deposits, { money: true, icon: 'card', tone: 'green' }),
+                card('Spent by users', day.balance.spent, prev?.balance.spent, { money: true, icon: 'cart', tone: 'orange' }),
+                card('User balance', day.balance.net, prev?.balance.net, { money: true, signed: true, icon: 'wallet', tone: 'orange' })
+            ]),
+            `
+            <div class="mt-8 sm:mt-10">
+                <h3 class="font-bold text-lg text-brand-darkText mb-3 sm:mb-4">Last 14 days</h3>
+
+                <!-- Mobile: card list -->
+                <ul class="md:hidden space-y-3">
+                    ${trend.map(r => `
+                    <li>
+                        <button type="button" onclick="setDay('${r.date}')" class="w-full text-left rounded-xl border p-3.5 transition-colors ${r.date === viewDate ? 'bg-blue-50 border-blue-200' : 'bg-white border-brand-border hover:bg-gray-50'}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="font-bold text-sm">${trendDayLabel(r.date)}</span>
+                                <span class="text-green-700 text-sm font-bold tabular-nums">${naira(sum(r, 'profit'))}</span>
+                            </div>
+                            <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs tabular-nums">
+                                <div><dt class="text-brand-lightText">New users</dt><dd class="mt-0.5 font-semibold">${Number(r.newUsers).toLocaleString()}</dd></div>
+                                <div><dt class="text-brand-lightText">Deposits</dt><dd class="mt-0.5 font-semibold">${naira(r.balance.deposits)}</dd></div>
+                                <div><dt class="text-brand-lightText">Orders</dt><dd class="mt-0.5 font-semibold">${sum(r, 'orders').toLocaleString()}</dd></div>
+                                <div><dt class="text-brand-lightText">Received OTPs</dt><dd class="mt-0.5 font-semibold">${Number(r.numbers.received).toLocaleString()}</dd></div>
+                                <div><dt class="text-brand-lightText">Revenue</dt><dd class="mt-0.5 font-semibold">${naira(sum(r, 'revenue'))}</dd></div>
+                                <div><dt class="text-brand-lightText">User balance</dt><dd class="mt-0.5 font-semibold ${netClass(r.balance.net)}">${signedNaira(r.balance.net)}</dd></div>
+                            </dl>
+                        </button>
+                    </li>`).join('')}
+                </ul>
+
+                <!-- Tablet/desktop: table -->
+                <div class="hidden md:block bg-white rounded-2xl border border-brand-border shadow-sm overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead class="bg-gray-50 text-brand-lightText uppercase border-b border-brand-border">
+                            <tr>
+                                <th class="px-4 py-3 font-bold text-left">Day</th>
+                                <th class="px-4 py-3 font-bold text-right">New users</th>
+                                <th class="px-4 py-3 font-bold text-right">Deposits</th>
+                                <th class="px-4 py-3 font-bold text-right">Orders</th>
+                                <th class="px-4 py-3 font-bold text-right">Received OTPs</th>
+                                <th class="px-4 py-3 font-bold text-right">Revenue</th>
+                                <th class="px-4 py-3 font-bold text-right">Profit</th>
+                                <th class="px-4 py-3 font-bold text-right">User balance</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-brand-border">
+                            ${trend.map(r => `
+                            <tr onclick="setDay('${r.date}')" class="cursor-pointer transition-colors ${r.date === viewDate ? 'bg-blue-50' : 'hover:bg-gray-50'}">
+                                <td class="px-4 py-3 whitespace-nowrap font-semibold">${trendDayLabel(r.date)}</td>
+                                <td class="${td}">${Number(r.newUsers).toLocaleString()}</td>
+                                <td class="${td}">${naira(r.balance.deposits)}</td>
+                                <td class="${td}">${sum(r, 'orders').toLocaleString()}</td>
+                                <td class="${td}">${Number(r.numbers.received).toLocaleString()}</td>
+                                <td class="${td}">${naira(sum(r, 'revenue'))}</td>
+                                <td class="${td} text-green-700 font-semibold">${naira(sum(r, 'profit'))}</td>
+                                <td class="${td} font-semibold ${netClass(r.balance.net)}">${signedNaira(r.balance.net)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-[11px] text-brand-lightText mt-3">Days follow Lagos time. Profit and cost cover orders that recorded the supplier's cost. User balance is deposits plus referral bonuses, minus what users spent (net of refunds).</p>
+            </div>`
+        ].join('');
+    }
+
+    // --- 6. Date Pickers (tapping the label opens the native picker where supported) ---
+    ['dayInput', 'compareInput'].forEach(id => {
+        const input = document.getElementById(id);
+        input.addEventListener('click', () => { try { input.showPicker?.(); } catch (err) { /* Not supported */ } });
+    });
+    document.getElementById('dayInput').addEventListener('change', e => setDay(e.target.value));
+    document.getElementById('compareInput').addEventListener('change', e => setCompare(e.target.value));
+
+    function logout() {
+        localStorage.removeItem('smsglobe_admin_token');
+        window.location.href = '/admin/login';
+    }
+
+    /**
+     * Toggles the mobile sidebar and its overlay
+     */
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebar-overlay').classList.toggle('hidden');
+    }
+
+    // --- 7. Startup ---
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!localStorage.getItem('smsglobe_admin_token')) return;
+        loadDays();
+    });
+</script>
+</body>
+</html>

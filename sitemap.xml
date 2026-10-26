@@ -1,44 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://smsglobe.net/index.html</loc>
+    <loc>https://www.deemaxhub.com/</loc>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://smsglobe.net/smsuser/user_login.html</loc>
+    <loc>https://www.deemaxhub.com/login</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/user_create.html</loc>
+    <loc>https://www.deemaxhub.com/register</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/buy_number.html</loc>
+    <loc>https://www.deemaxhub.com/virtual-numbers</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/esim_activation.html</loc>
+    <loc>https://www.deemaxhub.com/esim-activation</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/esim_refill.html</loc>
+    <loc>https://www.deemaxhub.com/esim-refill</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/user_vpn.html</loc>
+    <loc>https://www.deemaxhub.com/vpn</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/user_proxy.html</loc>
+    <loc>https://www.deemaxhub.com/proxies</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/user_rdp.html</loc>
+    <loc>https://www.deemaxhub.com/rdp</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://smsglobe.net/smsuser/send_gifts.html</loc>
+    <loc>https://www.deemaxhub.com/gifts</loc>
     <priority>0.7</priority>
   </url>
 </urlset>

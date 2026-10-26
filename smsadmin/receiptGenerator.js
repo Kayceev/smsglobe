@@ -1,5 +1,5 @@
 /**
- * Universal Receipt Generator for SMS GLOBE
+ * Universal Receipt Generator for DEEMAX
  * Supports PDF and Transparent PNG formats
  * @param {Object} order - The full order object containing transaction details
  */
@@ -20,7 +20,7 @@ async function generateUniversalReceipt(order) {
         width: '380px',
         padding: '40px',
         background: format === 'image' ? 'rgba(255, 255, 255, 0)' : '#ffffff',
-        fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        fontFamily: "'Outfit', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
         position: 'absolute',
         left: '-9999px',
         color: '#1a1a1a',
@@ -36,7 +36,7 @@ async function generateUniversalReceipt(order) {
     const serviceName = order.nodeName || order.carrier?.name || order.productName || 'Service Purchase';
     const amount = order.amount || order.amountNGN || 0;
     const target = order.targetNumber || order.recipient || 'N/A';
-    const logoUrl = 'https://i.imgur.com/8YeZgfx.png';
+    const logoUrl = '/assets/logo.png';
 
     receiptDiv.innerHTML = `
         <div style="text-align: center; margin-bottom: 25px;">
@@ -70,7 +70,7 @@ async function generateUniversalReceipt(order) {
         </div>
 
         <div style="margin-top: 30px; text-align: center;">
-            <p style="margin: 0; font-size: 11px; color: #222; font-weight: 600;">Thank you for using SMS GLOBE!</p>
+            <p style="margin: 0; font-size: 11px; color: #222; font-weight: 600;">Thank you for using DEEMAX!</p>
             <p style="margin: 5px 0; font-size: 9px; color: #999;">This is a computer-generated receipt. No signature required.</p>
         </div>
     `;
@@ -90,7 +90,7 @@ async function generateUniversalReceipt(order) {
 
         if (format === 'image') {
             const link = document.createElement('a');
-            link.download = `SMSGlobe-${order.paymentReference}.png`;
+            link.download = `Deemax-${order.paymentReference}.png`;
             link.href = imgData;
             link.click();
         } else {
@@ -99,7 +99,7 @@ async function generateUniversalReceipt(order) {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`SMSGlobe-${order.paymentReference}.pdf`);
+            pdf.save(`Deemax-${order.paymentReference}.pdf`);
         }
     } catch (err) {
         console.error("Receipt error:", err);

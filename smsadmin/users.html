@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deemax Admin - User Management</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png">
+    <link rel="apple-touch-icon" href="/assets/favicon.png">
+    <link rel="stylesheet" href="/assets/dark.css?v=16">
+    <script src="/assets/theme.js?v=12"></script>
+    <script src="/assets/admin-tables.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/assets/admin-ui.js?v=2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (!localStorage.getItem('smsglobe_admin_token')) {
+            window.location.href = '/admin/login';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0F54C6',
+                            orange: '#F9861E', red: '#E31E24',
+                            darkText: '#101828',
+                            midText: '#344054',
+                            lightText: '#667085',
+                            background: '#F0F5FE',
+                            border: '#EAECF0',
+                        }
+                    },
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                },
+            },
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F0F5FE; font-size: 13px; }
+        @media (min-width: 1024px) { body { font-size: 14px; } }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #EAECF0; border-radius: 10px; }
+        /* 1. Filter chips scroll sideways on phones without a scrollbar */
+        .no-scrollbar { scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen font-sans text-brand-darkText">
+
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 z-[70] hidden lg:hidden backdrop-blur-sm"></div>
+
+    <div class="flex">
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-[80] w-64 bg-white border-r border-brand-border transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col">
+            <div class="h-16 px-5 border-b border-brand-border border-t-2 border-t-brand-red flex items-center justify-between shrink-0">
+                <a href="/admin/dashboard"><img src="/assets/logo.png" alt="Deemax" class="h-9 w-auto"></a>
+                <button onclick="toggleSidebar()" class="lg:hidden text-gray-400 hover:text-brand-darkText p-1 text-2xl leading-none">&times;</button>
+            </div>
+
+            <nav class="flex-grow p-4 space-y-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <p class="px-3.5 text-[10px] font-bold text-brand-lightText uppercase tracking-widest mb-2">Main Menu</p>
+                        <a href="/admin/dashboard" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            Dashboard
+                        </a>
+                        <a href="/admin/sms-numbers" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            SMS Pricing
+                        </a>
+                        <a href="/admin/accounts" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                            Accounts &amp; VPN
+                        </a>
+                        <a href="/admin/users" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Users
+                        </a>
+                        <a href="/admin/transactions" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Transaction History
+                        </a>
+                        <a href="/admin/user-activity" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            User Activity
+                        </a>
+                        <a href="/admin/daily-changes" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Daily Changes
+                        </a>
+                        <a href="/admin/settings" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Settings
+                        </a>
+                        <a href="/admin/user-view" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            User View
+                        </a>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-3.5 pt-6 pb-2 text-[10px] font-bold text-brand-lightText uppercase tracking-widest cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                                Others
+                                <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </summary>
+                        <a href="/admin/vpn" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            VPN
+                        </a>
+                        <a href="/admin/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
+                            Proxy
+                        </a>
+                        <a href="/admin/esim-refills" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            eSIM Refill
+                        </a>
+                        <a href="/admin/esim-activations" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                            eSIM Activation
+                        </a>
+                        <a href="/admin/rdp" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
+                            <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            RDP Confirmation
+                        </a>
+                        </details>
+                    </nav>
+
+                <div class="p-4 border-t border-brand-border flex items-center gap-2">
+                    <button onclick="logout()" class="flex items-center gap-3.5 flex-1 min-w-0 px-3.5 py-2.5 text-red-500 hover:bg-red-50 rounded-xl text-[14px] font-semibold transition-colors">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Log Out</span>
+                    </button>
+                    <button id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" onclick="toggleTheme()" class="theme-switch shrink-0">
+                        <span class="theme-switch-star"></span><span class="theme-switch-star"></span><span class="theme-switch-star"></span>
+                        <svg class="theme-switch-track-icon is-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <svg class="theme-switch-track-icon is-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        <span class="theme-switch-knob">
+                            <svg class="is-sun" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"></circle><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7L5.3 5.3"></path></svg>
+                            <svg class="is-moon" fill="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                        </span>
+                    </button>
+            </div>
+        </aside>
+
+        <div class="flex-1 lg:ml-64 min-w-0 flex flex-col min-h-screen">
+        <!-- Main Top Bar -->
+        <header class="bg-white border-b border-brand-border border-t-2 border-t-brand-red sticky top-0 z-30 h-16 px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-2 min-w-0">
+                <button onclick="toggleSidebar()" class="lg:hidden p-1 text-brand-midText border border-brand-border rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <!-- Full logo on the mobile header (theme.js swaps in logo-dark.png at night) -->
+                <a href="/admin/dashboard" class="lg:hidden"><img src="/assets/logo.png" alt="Deemax" class="h-7 w-auto"></a>
+                <h1 class="hidden lg:inline text-xs font-bold text-brand-darkText truncate">User Management</h1>
+            </div>
+            <span class="flex items-center gap-1.5 bg-brand-background border border-brand-border rounded-full pl-2.5 pr-3 py-1.5 text-[13px] font-bold text-brand-darkText">
+                <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                Admin
+            </span>
+        </header>
+
+        <main class="flex-1 w-full p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full min-w-0 space-y-6">
+            <header class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight">User Management</h2>
+                    <p class="text-brand-lightText text-xs md:text-sm">Credit or debit wallets, suspend accounts, manage admin access</p>
+                </div>
+            </header>
+
+            <!-- Summary Tiles (each one is also a filter) -->
+            <section id="summaryTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4"></section>
+
+            <section class="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden">
+                <!-- Toolbar -->
+                <div class="px-4 sm:px-6 py-4 border-b border-brand-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div id="filterChips" class="flex gap-2 overflow-x-auto -mx-1 px-1 no-scrollbar"></div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <div class="relative">
+                            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-brand-lightText pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" id="userSearch" placeholder="Email, name or referral code" class="w-full sm:w-64 bg-brand-background/30 border border-brand-border pl-9 pr-3 py-2 rounded-xl outline-none focus:border-brand-blue">
+                        </div>
+                        <!-- Sorting lives in the table headers on desktop; phones get this select -->
+                        <select id="sortSelect" class="md:hidden bg-brand-background/30 border border-brand-border px-3 py-2 rounded-xl outline-none focus:border-brand-blue">
+                            <option value="createdAt:desc">Newest first</option>
+                            <option value="createdAt:asc">Oldest first</option>
+                            <option value="balance:desc">Balance, high to low</option>
+                            <option value="totalDeposit:desc">Deposits, high to low</option>
+                            <option value="orders:desc">Most orders</option>
+                            <option value="email:asc">Email A–Z</option>
+                            <option value="fullName:asc">Name A–Z</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mobile: one card per user -->
+                <ul id="userCards" class="md:hidden divide-y divide-brand-border"></ul>
+
+                <!-- Tablet/desktop: table -->
+                <div class="hidden md:block overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left whitespace-nowrap">
+                        <thead id="usersHead" class="bg-gray-50/50 border-b border-brand-border"></thead>
+                        <tbody id="usersBody" class="divide-y divide-brand-border"></tbody>
+                    </table>
+                </div>
+
+                <div class="px-4 sm:px-6 py-3 border-t border-brand-border flex items-center justify-between gap-3 text-xs">
+                    <span id="usersInfo" class="text-brand-lightText tabular-nums"></span>
+                    <div class="flex gap-2">
+                        <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1.5 border border-brand-border rounded-lg font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+                        <button id="nextPage" onclick="changePage(1)" class="px-3 py-1.5 border border-brand-border rounded-lg font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    </div>
+
+    <!-- Manage User Dialog (a bottom sheet on phones) -->
+    <div id="manageModal" class="fixed inset-0 z-[90] hidden items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm sm:p-4" onclick="if (event.target === this) closeManage()">
+        <div id="managePanel" class="bg-white w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl border border-brand-border shadow-xl shadow-blue-900/5"></div>
+    </div>
+
+<script>
+    // --- 1. Helpers ---
+    /**
+     * Escapes every string in API data before it is rendered with innerHTML.
+     * Names, emails and addresses are typed by customers, so they must never run as HTML.
+     */
+    function escapeHtmlDeep(value) {
+        if (typeof value === 'string') {
+            return value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+        if (Array.isArray(value)) return value.map(escapeHtmlDeep);
+        if (value && typeof value === 'object') {
+            return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, escapeHtmlDeep(v)]));
+        }
+        return value;
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        document.getElementById('sidebarOverlay').classList.toggle('hidden');
+    }
+
+    function logout() {
+        localStorage.removeItem('smsglobe_admin_token');
+        window.location.href = '/admin/login';
+    }
+
+    // Every call carries the admin token; a 401 sends the admin back to login
+    async function api(path, options = {}) {
+        const res = await fetch(`/api/${path}`, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('smsglobe_admin_token')}` }
+        });
+        if (res.status === 401) { logout(); throw new Error('Session expired'); }
+        return escapeHtmlDeep(await res.json());
+    }
+
+    const naira = amount => `₦${Math.round(Number(amount || 0)).toLocaleString()}`;
+    const shortDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+    const initial = u => (u.fullName || u.email || '?').trim().charAt(0).toUpperCase();
+
+    // Status chips: only the exceptions stand out, a plain active user stays quiet
+    function statusChips(u) {
+        const chips = [];
+        if (u.isAdmin) chips.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-blue-50 text-brand-blue border-blue-200">Admin</span>');
+        if (u.status === 'suspended') chips.push(`<span title="${u.suspendedReason || 'Suspended'}" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-red-50 text-red-600 border-red-200">Suspended</span>`);
+        if (!u.isVerified) chips.push('<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-amber-50 text-amber-700 border-amber-200">Unverified</span>');
+        if (!chips.length) chips.push('<span class="text-[11px] text-brand-lightText">Active</span>');
+        return chips.join(' ');
+    }
+
+    // --- 2. Summary Tiles And Filters ---
+    const FILTERS = [
+        { key: 'all', label: 'All users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', tone: 'bg-blue-50 text-brand-blue border-blue-100' },
+        { key: 'active', label: 'Active', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', tone: 'bg-green-50 text-green-600 border-green-100' },
+        { key: 'suspended', label: 'Suspended', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', tone: 'bg-red-50 text-red-500 border-red-100' },
+        { key: 'admins', label: 'Admins', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', tone: 'bg-violet-50 text-violet-600 border-violet-100' }
+    ];
+
+    function renderSummary(counts) {
+        document.getElementById('summaryTiles').innerHTML = FILTERS.map(f => `
+            <button type="button" onclick="setFilter('${f.key}')" class="text-left h-full bg-white rounded-2xl border p-3 sm:p-5 transition-colors ${filter === f.key ? 'border-blue-200 shadow-md shadow-blue-900/5' : 'border-brand-border shadow-sm hover:bg-gray-50'}">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText truncate">${f.label}</p>
+                        <p class="text-base sm:text-2xl font-bold mt-1.5 sm:mt-2 tabular-nums ${filter === f.key ? 'text-brand-blue' : 'text-brand-darkText'}">${Number(counts?.[f.key] || 0).toLocaleString()}</p>
+                    </div>
+                    <span class="hidden sm:flex w-10 h-10 rounded-full border items-center justify-center shrink-0 ${f.tone}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${f.icon}"/></svg>
+                    </span>
+                </div>
+            </button>`).join('');
+
+        document.getElementById('filterChips').innerHTML = FILTERS.map(f => `
+            <button type="button" onclick="setFilter('${f.key}')" class="shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+                filter === f.key ? 'bg-brand-blue text-white shadow-lg shadow-blue-200' : 'text-brand-midText border border-brand-border hover:bg-brand-background hover:text-brand-blue'
+            }">${f.key === 'all' ? 'All' : f.label}</button>`).join('');
+    }
+
+    // --- 3. Table And Cards ---
+    const COLUMNS = [
+        ['User', 'fullName'], ['Status', null], ['Balance', 'balance', true], ['Deposits', 'totalDeposit', true],
+        ['Orders', 'orders', true], ['Referrals', null, true], ['Joined', 'createdAt'], ['', null]
+    ];
+
+    // Clicking a column sorts by it; clicking the active one flips direction
+    function renderHead() {
+        document.getElementById('usersHead').innerHTML = `<tr>${COLUMNS.map(([label, key, right]) => {
+            const base = `px-5 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText${right ? ' text-right' : ''}`;
+            if (!key) return `<th class="${base}">${label}</th>`;
+            const active = sort === key;
+            const arrow = !active ? '↕' : dir === 'asc' ? '↑' : '↓';
+            return `<th class="${base}"><button type="button" onclick="toggleSort('${key}')" class="inline-flex items-center gap-1 uppercase tracking-wider ${active ? 'text-brand-blue' : 'hover:text-brand-blue'}">${label}<span class="${active ? '' : 'opacity-50'}">${arrow}</span></button></th>`;
+        }).join('')}</tr>`;
+    }
+
+    function userRow(u, i) {
+        const muted = u.status === 'suspended' ? 'line-through text-brand-lightText' : '';
+        return `
+            <tr class="hover:bg-brand-background/30 transition-colors cursor-pointer" onclick="openManage(${i})">
+                <td class="px-5 py-3">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-xl bg-brand-background text-brand-blue font-bold flex items-center justify-center shrink-0">${initial(u)}</span>
+                        <div class="min-w-0">
+                            <div class="font-semibold truncate max-w-[220px] ${muted}">${u.fullName}</div>
+                            <div class="text-xs text-brand-lightText truncate max-w-[220px]">${u.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-5 py-3">${statusChips(u)}</td>
+                <td class="px-5 py-3 text-right tabular-nums">
+                    <span class="font-bold">${naira(u.balance)}</span>
+                    ${u.bonusBalance ? `<span class="block text-[10px] text-brand-lightText">+${naira(u.bonusBalance)} bonus</span>` : ''}
+                </td>
+                <td class="px-5 py-3 text-right tabular-nums text-green-700 font-semibold">${naira(u.totalDeposit)}</td>
+                <td class="px-5 py-3 text-right tabular-nums">${Number(u.orderCount).toLocaleString()}</td>
+                <td class="px-5 py-3 text-right tabular-nums">
+                    ${Number(u.referralCount).toLocaleString()}
+                    <span class="block font-mono text-[10px] text-brand-lightText">${u.referralCode}</span>
+                </td>
+                <td class="px-5 py-3 text-xs text-brand-lightText">${shortDate(u.createdAt)}</td>
+                <td class="px-5 py-3 text-right">
+                    <button type="button" onclick="event.stopPropagation(); openManage(${i})" class="px-3 py-1.5 border border-brand-border rounded-lg text-xs font-bold text-brand-midText hover:bg-brand-background hover:text-brand-blue">Manage</button>
+                </td>
+            </tr>`;
+    }
+
+    function userCard(u, i) {
+        return `
+            <li>
+                <button type="button" onclick="openManage(${i})" class="w-full text-left px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-xl bg-brand-background text-brand-blue font-bold flex items-center justify-center shrink-0">${initial(u)}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-semibold truncate ${u.status === 'suspended' ? 'line-through text-brand-lightText' : ''}">${u.fullName}</div>
+                            <div class="text-xs text-brand-lightText truncate">${u.email}</div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="font-bold tabular-nums">${naira(u.balance)}</div>
+                            <div class="text-[10px] text-green-700 tabular-nums">${naira(u.totalDeposit)} in</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">${statusChips(u)}</div>
+                        <span class="text-[11px] text-brand-lightText shrink-0">${Number(u.orderCount).toLocaleString()} orders · ${shortDate(u.createdAt)}</span>
+                    </div>
+                </button>
+            </li>`;
+    }
+
+    // --- 4. State & Loading ---
+    const PAGE_SIZE = 25;
+    let users = [];
+    let filter = 'all';
+    let sort = 'createdAt';
+    let dir = 'desc';
+    let page = 1;
+    let pages = 1;
+    let lastCounts = null;
+    let loadToken = 0; // Ignores replies for a search the admin already changed
+
+    async function fetchUsers() {
+        const myToken = ++loadToken;
+        const params = new URLSearchParams({ page, limit: PAGE_SIZE, sort, dir, filter });
+        const search = document.getElementById('userSearch').value.trim();
+        if (search) params.set('search', search);
+        const tbody = document.getElementById('usersBody');
+        const cards = document.getElementById('userCards');
+        if (!users.length) {
+            tbody.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="px-6 py-10 text-center text-brand-lightText animate-pulse">Loading users...</td></tr>`;
+            cards.innerHTML = '<li class="px-4 py-10 text-center text-brand-lightText animate-pulse">Loading users...</li>';
+        }
+
+        try {
+            const data = await api(`get-users?${params}`);
+            if (myToken !== loadToken) return;
+            if (!data.success) throw new Error(data.message);
+            users = data.users || [];
+            pages = data.pages || 1;
+            lastCounts = data.counts;
+            renderSummary(lastCounts);
+
+            const empty = search ? `No users matching “${search}”.` : 'No users here yet.';
+            tbody.innerHTML = users.length ? users.map(userRow).join('') : `<tr><td colspan="${COLUMNS.length}" class="px-6 py-10 text-center text-brand-lightText">${empty}</td></tr>`;
+            cards.innerHTML = users.length ? users.map(userCard).join('') : `<li class="px-4 py-10 text-center text-brand-lightText">${empty}</li>`;
+
+            const from = data.total ? (page - 1) * PAGE_SIZE + 1 : 0;
+            document.getElementById('usersInfo').innerText = `${from}–${Math.min(page * PAGE_SIZE, data.total)} of ${Number(data.total).toLocaleString()} · page ${page} of ${pages}`;
+            document.getElementById('prevPage').disabled = page <= 1;
+            document.getElementById('nextPage').disabled = page >= pages;
+        } catch (err) {
+            if (myToken !== loadToken) return;
+            users = [];
+            tbody.innerHTML = `<tr><td colspan="${COLUMNS.length}" class="px-6 py-10 text-center text-red-500">Could not load users. <button type="button" onclick="fetchUsers()" class="underline font-bold">Retry</button></td></tr>`;
+            cards.innerHTML = '<li class="px-4 py-10 text-center text-red-500">Could not load users.</li>';
+        }
+    }
+
+    window.setFilter = function(key) { filter = key; page = 1; renderSummary(lastCounts); fetchUsers(); };
+    window.toggleSort = function(key) {
+        if (sort === key) dir = dir === 'asc' ? 'desc' : 'asc';
+        else { sort = key; dir = key === 'email' || key === 'fullName' ? 'asc' : 'desc'; }
+        page = 1;
+        document.getElementById('sortSelect').value = `${sort}:${dir}`;
+        renderHead();
+        fetchUsers();
+    };
+    window.changePage = function(step) { page = Math.min(Math.max(page + step, 1), pages); fetchUsers(); };
+
+    let searchTimer;
+    document.getElementById('userSearch').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { page = 1; fetchUsers(); }, 350);
+    });
+    document.getElementById('sortSelect').addEventListener('change', e => {
+        [sort, dir] = e.target.value.split(':');
+        page = 1;
+        renderHead();
+        fetchUsers();
+    });
+
+    // --- 5. Manage Dialog ---
+    // Tiered like DanSMS's: the wallet (routine) first, account state next, delete quarantined at the bottom
+    const QUICK_NGN = [1000, 2000, 5000, 10000];
+    let managing = null;
+    let manageView = 'main'; // 'main' | 'suspend' | 'delete'
+    let footprint = null;
+    let busy = false;
+
+    window.openManage = function(index) {
+        managing = users[index];
+        if (!managing) return;
+        manageView = 'main';
+        footprint = null;
+        renderManage();
+        const modal = document.getElementById('manageModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeManage = function() {
+        const modal = document.getElementById('manageModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+        managing = null;
+    };
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && managing) closeManage(); });
+
+    const sectionLabel = text => `<h4 class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText">${text}</h4>`;
+
+    function actionRow({ onclick, icon, label, sub, disabled = false, hint = '', tone = 'text-brand-darkText' }) {
+        return `
+            <button type="button" onclick="${onclick}" ${disabled ? 'disabled' : ''} title="${hint}" class="w-full min-h-[52px] flex items-center gap-3 px-3.5 py-3 text-left hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4 shrink-0 text-brand-lightText" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icon}"/></svg>
+                <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-semibold ${tone}">${label}</span>
+                    <span class="block text-[11px] text-brand-lightText truncate mt-0.5">${disabled && hint ? hint : sub}</span>
+                </span>
+                <svg class="w-4 h-4 shrink-0 text-brand-lightText" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>`;
+    }
+
+    function renderManage() {
+        const u = managing;
+        const suspended = u.status === 'suspended';
+        const header = `
+            <div class="sticky top-0 z-10 bg-white px-5 pt-3 pb-4 border-b border-brand-border">
+                <div class="sm:hidden mx-auto w-9 h-1 rounded-full bg-gray-200 mb-3"></div>
+                <button type="button" onclick="closeManage()" class="hidden sm:flex absolute right-3 top-3 w-8 h-8 rounded-lg items-center justify-center text-brand-lightText hover:bg-brand-background" aria-label="Close">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <div class="flex items-center gap-3 sm:pr-8">
+                    <span class="w-11 h-11 rounded-xl bg-brand-background text-brand-blue font-bold flex items-center justify-center shrink-0">${initial(u)}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold truncate">${u.fullName}</div>
+                        <div class="text-xs text-brand-lightText truncate">${u.email}</div>
+                    </div>
+                    <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${suspended ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}">${suspended ? 'Suspended' : 'Active'}</span>
+                </div>
+            </div>`;
+
+        const back = `<button type="button" onclick="setManageView('main')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-lightText hover:text-brand-blue mb-4">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg> Back</button>`;
+
+        let body;
+        if (manageView === 'suspend') {
+            body = `
+                <div class="px-5 py-5">
+                    ${back}
+                    <h3 class="text-lg font-bold">Suspend this account?</h3>
+                    <p class="text-sm text-brand-midText mt-1">They keep their balance and history but can't sign in or buy anything until you restore them.</p>
+                    <label for="suspendReason" class="block text-[10px] font-bold uppercase tracking-widest text-brand-midText mt-4 mb-2">Reason (optional)</label>
+                    <input type="text" id="suspendReason" maxlength="200" placeholder="e.g. Chargeback on deposit" class="w-full bg-white border border-brand-border px-4 py-3 rounded-xl text-sm outline-none focus:border-brand-blue">
+                    <button type="button" onclick="runAction('suspend')" ${busy ? 'disabled' : ''} class="w-full mt-5 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50">${busy ? 'Processing...' : 'Suspend account'}</button>
+                    <button type="button" onclick="setManageView('main')" class="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border text-sm font-bold text-brand-midText hover:bg-brand-background">Cancel</button>
+                </div>`;
+        } else if (manageView === 'delete') {
+            const fp = footprint || {};
+            body = `
+                <div class="px-5 py-5">
+                    ${back}
+                    <h3 class="text-lg font-bold">Delete this account?</h3>
+                    <p class="text-sm text-brand-midText mt-1">The account is removed for good. Its orders and payments stay in the records without an owner. This can't be undone.</p>
+                    <dl class="mt-4 rounded-xl border border-brand-border divide-y divide-brand-border text-sm">
+                        ${[['Orders', Number(fp.orders || 0).toLocaleString()], ['Successful deposits', Number(fp.deposits || 0).toLocaleString()],
+                           ['Lifetime deposited', naira(fp.paidNGN)], ['Main wallet', naira(fp.balanceNGN)], ['Bonus wallet', naira(fp.bonusNGN)]]
+                            .map(([k, v]) => `<div class="flex justify-between px-3.5 py-2.5"><dt class="text-brand-lightText">${k}</dt><dd class="font-semibold tabular-nums">${v}</dd></div>`).join('')}
+                    </dl>
+                    ${(fp.deposits || 0) > 0 ? '<p class="text-xs text-amber-700 mt-3">These deposits count toward revenue and Wallet Check. Suspend instead if you only need to block access.</p>' : ''}
+                    <button type="button" onclick="runAction('delete')" ${busy ? 'disabled' : ''} class="w-full mt-5 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50">${busy ? 'Deleting...' : 'Delete permanently'}</button>
+                    <button type="button" onclick="setManageView('main')" class="w-full mt-2 px-4 py-3 rounded-xl border border-brand-border text-sm font-bold text-brand-midText hover:bg-brand-background">Cancel</button>
+                </div>`;
+        } else {
+            const selfHint = u.isSelf ? "That's your own account" : '';
+            body = `
+                <div class="px-5 py-5 space-y-6">
+                    <!-- 1. Wallet: the routine action, open and ready -->
+                    <section>
+                        <div class="flex items-baseline justify-between">
+                            ${sectionLabel('Main wallet')}
+                            <span class="text-lg font-bold tabular-nums">${naira(u.balance)}</span>
+                        </div>
+                        ${u.bonusBalance ? `<p class="text-[11px] text-brand-lightText text-right">+ ${naira(u.bonusBalance)} bonus balance</p>` : ''}
+                        <div class="mt-2.5 flex flex-wrap gap-1.5">
+                            ${QUICK_NGN.map(n => `<button type="button" onclick="pickAmount(${n})" class="quick-amt px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-brand-border text-brand-midText hover:bg-brand-background tabular-nums" data-amount="${n}">${naira(n)}</button>`).join('')}
+                        </div>
+                        <div class="relative mt-2">
+                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-lightText text-sm">₦</span>
+                            <input type="number" id="walletAmount" min="1" max="1000000" step="1" placeholder="Custom amount" oninput="syncAmount()" class="w-full bg-white border border-brand-border pl-8 pr-3 py-3 rounded-xl text-sm tabular-nums outline-none focus:border-brand-blue">
+                        </div>
+                        <input type="text" id="walletNote" maxlength="200" placeholder="Note (optional), e.g. bank transfer ref" class="w-full mt-2 bg-white border border-brand-border px-4 py-3 rounded-xl text-sm outline-none focus:border-brand-blue">
+                        <!-- Direction and amount in one step -->
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <button type="button" id="debitBtn" onclick="adjustWallet('debit')" disabled class="px-4 py-3 rounded-xl border border-brand-border text-sm font-bold text-brand-midText hover:bg-brand-background disabled:opacity-40 disabled:cursor-not-allowed">− Debit</button>
+                            <button type="button" id="creditBtn" onclick="adjustWallet('credit')" disabled class="px-4 py-3 rounded-xl bg-brand-blue text-white text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-40 disabled:cursor-not-allowed">+ Credit</button>
+                        </div>
+                    </section>
+
+                    <!-- 2. Account State And Permissions -->
+                    <section>
+                        ${sectionLabel('Account')}
+                        <div class="mt-2.5 rounded-xl border border-brand-border divide-y divide-brand-border overflow-hidden">
+                            ${u.isAdmin
+                                ? actionRow({ onclick: "runAction('remove-admin')", icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', label: 'Remove admin access', sub: 'They can no longer sign in to this panel', disabled: u.isSelf || busy, hint: u.isSelf ? "You can't remove your own access" : '' })
+                                : actionRow({ onclick: "runAction('make-admin')", icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: 'Make admin', sub: 'Full access to this panel with their own password', disabled: suspended || busy, hint: suspended ? 'Restore the account first' : '' })}
+                            ${suspended
+                                ? actionRow({ onclick: "runAction('activate')", icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', label: 'Restore access', sub: u.suspendedReason ? `Suspended: ${u.suspendedReason}` : `Suspended since ${shortDate(u.suspendedAt)}`, disabled: busy })
+                                : actionRow({ onclick: "setManageView('suspend')", icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', label: 'Suspend account', sub: 'Blocks sign-in and purchases; keeps all history', disabled: u.isSelf || u.isAdmin || busy, hint: u.isSelf ? selfHint : u.isAdmin ? 'Remove admin access first' : '' })}
+                            ${actionRow({ onclick: `location.href='/admin/user-activity?userId=${u._id}&email=${encodeURIComponent(u.email)}'`, icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'View activity', sub: 'Deposits, purchases, refunds and failed attempts' })}
+                        </div>
+                    </section>
+
+                    <!-- 3. Details -->
+                    <section>
+                        ${sectionLabel('Details')}
+                        <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+                            <div><dt class="text-[11px] text-brand-lightText">Deposited</dt><dd class="font-semibold tabular-nums text-green-700">${naira(u.totalDeposit)} <span class="text-brand-lightText font-normal text-xs">(${u.depositCount})</span></dd></div>
+                            <div><dt class="text-[11px] text-brand-lightText">Orders</dt><dd class="font-semibold tabular-nums">${Number(u.orderCount).toLocaleString()}</dd></div>
+                            <div><dt class="text-[11px] text-brand-lightText">Referral code</dt><dd class="font-mono text-xs font-semibold">${u.referralCode}</dd></div>
+                            <div><dt class="text-[11px] text-brand-lightText">Referrals</dt><dd class="font-semibold tabular-nums">${Number(u.referralCount).toLocaleString()}</dd></div>
+                            <div><dt class="text-[11px] text-brand-lightText">Referred by</dt><dd class="font-mono text-xs font-semibold">${u.referredBy || '—'}</dd></div>
+                            <div><dt class="text-[11px] text-brand-lightText">Email verified</dt><dd class="font-semibold">${u.isVerified ? 'Yes' : 'No'}</dd></div>
+                            <div class="col-span-2"><dt class="text-[11px] text-brand-lightText">Joined</dt><dd class="font-semibold">${u.createdAt ? new Date(u.createdAt).toLocaleString() : '—'}</dd></div>
+                        </dl>
+                    </section>
+
+                    <!-- 4. Quarantined: separated and muted until deliberately reached for -->
+                    <section class="pt-3 border-t border-brand-border">
+                        <button type="button" onclick="openDelete()" ${u.isSelf || u.isAdmin || busy ? 'disabled' : ''} title="${u.isAdmin ? 'Remove admin access first' : selfHint}" class="w-full min-h-[44px] flex items-center gap-3 px-3.5 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <span class="flex-1 text-left">Delete account</span>
+                        </button>
+                    </section>
+                </div>`;
+        }
+
+        document.getElementById('managePanel').innerHTML = header + body;
+        if (manageView === 'suspend') document.getElementById('suspendReason').focus();
+    }
+
+    window.setManageView = function(view) { manageView = view; renderManage(); };
+
+    window.pickAmount = function(n) {
+        document.getElementById('walletAmount').value = n;
+        syncAmount();
+    };
+
+    window.syncAmount = function() {
+        const value = Number(document.getElementById('walletAmount').value);
+        const valid = Number.isFinite(value) && value > 0;
+        document.getElementById('creditBtn').disabled = !valid || busy;
+        document.getElementById('debitBtn').disabled = !valid || busy;
+        document.querySelectorAll('.quick-amt').forEach(btn => {
+            const on = Number(btn.dataset.amount) === value;
+            btn.classList.toggle('bg-blue-50', on);
+            btn.classList.toggle('border-blue-200', on);
+            btn.classList.toggle('text-brand-blue', on);
+        });
+    };
+
+    // After any change: reload the list and keep the dialog on the same (refreshed) user
+    async function refreshAfter(message, keepOpen = true) {
+        const id = managing?._id;
+        notify(message, 'success');
+        await fetchUsers();
+        const index = users.findIndex(u => u._id === id);
+        if (keepOpen && index >= 0) { managing = users[index]; manageView = 'main'; renderManage(); }
+        else closeManage();
+    }
+
+    window.adjustWallet = async function(direction) {
+        const u = managing;
+        const amount = Math.round(Number(document.getElementById('walletAmount').value));
+        const note = document.getElementById('walletNote').value.trim();
+        if (!amount || amount <= 0) return notify("Enter a valid amount.", 'error');
+        const verb = direction === 'debit' ? `Take ₦${amount.toLocaleString()} from` : `Add ₦${amount.toLocaleString()} to`;
+        if (!(await confirmAction(`${verb} ${u.email}'s main wallet?`, { title: direction === 'debit' ? 'Debit wallet?' : 'Credit wallet?', confirmText: direction === 'debit' ? 'Debit' : 'Credit', danger: direction === 'debit' }))) return;
+
+        busy = true;
+        const btn = document.getElementById(direction === 'debit' ? 'debitBtn' : 'creditBtn');
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+        try {
+            const data = await api('admin-credit-user', { method: 'POST', body: JSON.stringify({ userId: u._id, amount, note, direction }) });
+            busy = false;
+            if (data.success) await refreshAfter(data.message);
+            else { notify(data.message || "Wallet update failed.", 'error'); renderManage(); }
+        } catch (err) {
+            busy = false;
+            notify("Network error. Please try again.", 'error');
+            renderManage();
+        }
+    };
+
+    window.openDelete = async function() {
+        try {
+            const data = await api(`user-footprint?userId=${managing._id}`);
+            if (!data.success) return notify(data.message, 'error');
+            footprint = data.footprint;
+            setManageView('delete');
+        } catch (err) {
+            notify("Could not read this user's records.", 'error');
+        }
+    };
+
+    const CONFIRM_TEXT = {
+        'make-admin': u => `Give ${u.email} full access to the admin panel? They sign in on the normal login page and get an Admin Panel link.`,
+        'remove-admin': u => `Remove ${u.email}'s admin access?`,
+        'activate': u => `Restore ${u.email}'s account access?`
+    };
+
+    window.runAction = async function(action) {
+        const u = managing;
+        if (CONFIRM_TEXT[action] && !(await confirmAction(CONFIRM_TEXT[action](u), { confirmText: 'Yes, continue', danger: action === 'remove-admin' }))) return;
+        const body = { action, userId: u._id };
+        if (action === 'suspend') body.reason = document.getElementById('suspendReason').value.trim();
+        if (action === 'delete') body.force = true; // The admin has seen the footprint on the delete screen
+
+        busy = true;
+        renderManage();
+        try {
+            const data = await api('manage-user', { method: 'POST', body: JSON.stringify(body) });
+            busy = false;
+            if (data.success) await refreshAfter(data.message, action !== 'delete');
+            else { notify(data.message || "Could not update user.", 'error'); renderManage(); }
+        } catch (err) {
+            busy = false;
+            notify("Network error. Please try again.", 'error');
+            renderManage();
+        }
+    };
+
+    // --- 6. Startup ---
+    window.onload = () => {
+        renderHead();
+        renderSummary(null);
+        fetchUsers();
+    };
+</script>
+</body>
+</html>
