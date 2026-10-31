@@ -48,8 +48,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* 4. SELECTED QUICK AMOUNT */
-        .amount-chip.is-active { border-color: #E31E24; color: #E31E24; }
-        html.dark .amount-chip.is-active { border-color: #E31E24; color: #FF6B6F; }
     </style>
 </head>
 <body class="bg-brand-background min-h-screen flex font-sans text-brand-midText">
@@ -164,113 +162,96 @@
             </div>
         </header>
 
-        <main class="p-4 md:p-6 max-w-6xl w-full mx-auto space-y-6">
+        <main class="p-4 md:p-6 w-full">
+            <!-- One narrow centered column, like DanSMS's top-up page -->
+            <div class="max-w-md mx-auto w-full">
 
-            <!-- Payment Result (shown after Flutterwave redirects back) -->
-            <section id="statusAlert" class="hidden bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
-                <div class="flex items-start gap-3">
-                    <div id="statusIcon" class="w-10 h-10 shrink-0 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center">
-                        <div class="w-4 h-4 border-2 border-brand-blue/20 border-t-brand-blue rounded-full animate-spin"></div>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p id="statusTitle" class="text-sm font-bold text-brand-darkText">Confirming your payment...</p>
-                        <div id="statusMessage" class="text-xs text-brand-lightText mt-1 leading-relaxed">This only takes a few seconds. Please don't close this page.</div>
-                    </div>
+            <!-- Top-up Account (the user's own NeuraPay bank account) -->
+            <section id="accountCard" class="pt-4 md:pt-8 text-center">
+                <span class="inline-flex w-14 h-14 rounded-2xl bg-brand-blue text-white items-center justify-center shadow-lg shadow-blue-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V10m14 11V10M9 21v-6h6v6M12 3l9 5H3l9-5z"></path></svg>
+                </span>
+                <h1 class="text-lg md:text-xl font-bold text-brand-darkText mt-4">Your dedicated account</h1>
+                <p class="text-[13px] text-brand-lightText mt-1">Transfer any amount to fund your wallet.</p>
+
+                <!-- Loading -->
+                <div id="accountLoading" class="py-10 flex flex-col items-center gap-3">
+                    <div class="w-6 h-6 border-2 border-brand-blue/20 border-t-brand-blue rounded-full animate-spin"></div>
+                    <p class="text-[13px] text-brand-lightText">Setting up your account...</p>
                 </div>
-                <button id="manualRedirectBtn" class="hidden w-full mt-4 bg-brand-blue hover:bg-blue-700 text-white py-3 rounded-xl text-[13px] font-bold transition-all active:scale-95 shadow-lg shadow-blue-200">Go to Dashboard</button>
-            </section>
 
-            <!-- Security Note -->
-            <section class="bg-white border border-brand-border rounded-2xl">
-                <div class="flex items-center gap-2.5 px-5 md:px-7 py-2.5">
-                    <div class="w-7 h-7 shrink-0 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                    </div>
-                    <p class="text-[11px] font-semibold text-brand-midText">Secured by Flutterwave. Funds reflect within seconds.</p>
+                <!-- Error -->
+                <div id="accountError" class="hidden mt-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-5">
+                    <p id="accountErrorText" class="text-[13px] text-red-600"></p>
+                    <button onclick="loadVirtualAccount()" class="mt-3 px-5 py-2 rounded-full bg-brand-blue hover:bg-blue-700 text-white text-[13px] font-bold transition-all active:scale-95">Try Again</button>
                 </div>
-            </section>
 
-            <!-- Two columns on desktop: amount form left, steps and history right -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-
-            <!-- Amount (quick picks, custom amount, summary and pay button) -->
-            <section>
-                <h2 class="text-base md:text-lg font-semibold text-brand-lightText mb-3 md:mb-4">Choose Amount</h2>
-                <div class="bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
-                    <div class="grid grid-cols-4 gap-2 md:gap-3">
-                        <button type="button" onclick="setAmount(1000, this)" class="amount-chip py-2.5 rounded-full bg-white border border-brand-border text-xs md:text-[13px] font-bold text-brand-darkText hover:border-brand-red transition-all active:scale-95">₦1k</button>
-                        <button type="button" onclick="setAmount(5000, this)" class="amount-chip py-2.5 rounded-full bg-white border border-brand-border text-xs md:text-[13px] font-bold text-brand-darkText hover:border-brand-red transition-all active:scale-95">₦5k</button>
-                        <button type="button" onclick="setAmount(10000, this)" class="amount-chip py-2.5 rounded-full bg-white border border-brand-border text-xs md:text-[13px] font-bold text-brand-darkText hover:border-brand-red transition-all active:scale-95">₦10k</button>
-                        <button type="button" onclick="setAmount(25000, this)" class="amount-chip py-2.5 rounded-full bg-white border border-brand-border text-xs md:text-[13px] font-bold text-brand-darkText hover:border-brand-red transition-all active:scale-95">₦25k</button>
-                    </div>
-
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText mt-5 mb-1.5">Or enter an amount</p>
-                    <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-brand-darkText text-lg">₦</span>
-                        <input type="number" id="ngnInput" placeholder="0" min="100" step="1" inputmode="numeric" class="w-full bg-brand-background border border-brand-border rounded-xl py-3.5 pl-9 pr-4 text-xl font-extrabold text-brand-darkText outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/10 transition-all">
-                    </div>
-                    <p class="text-[11px] text-brand-lightText mt-1.5">Minimum ₦100.</p>
-
-                    <!-- Summary -->
-                    <div class="mt-5 bg-brand-background border border-brand-border rounded-xl divide-y divide-brand-border">
-                        <div class="flex items-center justify-between px-4 py-2.5">
-                            <span class="text-xs text-brand-lightText">Wallet credit</span>
-                            <span id="creditDisplay" class="text-[13px] font-semibold text-brand-darkText">₦0.00</span>
+                <!-- Account Details -->
+                <div id="accountDetails" class="hidden">
+                    <div class="mt-6 bg-white border border-brand-border rounded-2xl shadow-xl shadow-blue-900/5 px-4 text-left divide-y divide-brand-border">
+                        <div class="flex items-center justify-between gap-3 py-3.5">
+                            <span class="text-xs text-brand-lightText">Bank</span>
+                            <span id="vaBank" class="text-[14px] font-semibold text-brand-darkText truncate"></span>
                         </div>
-                        <div id="feeRow" class="hidden flex items-center justify-between px-4 py-2.5">
-                            <span class="text-xs text-brand-lightText">Top-up fee</span>
-                            <span id="feeDisplay" class="text-[13px] font-semibold text-brand-darkText">₦0.00</span>
+                        <div class="flex items-center justify-between gap-3 py-3.5">
+                            <span class="text-xs text-brand-lightText">Account number</span>
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span id="vaNumber" class="text-[17px] font-bold text-brand-darkText tabular-nums tracking-wide"></span>
+                                <button type="button" onclick="copyField('vaNumber', this)" aria-label="Copy account number" class="copy-btn shrink-0 p-1 text-brand-lightText hover:text-brand-blue transition-colors"></button>
+                            </span>
                         </div>
-                        <div class="flex items-center justify-between px-4 py-3">
-                            <span class="text-[13px] font-bold text-brand-darkText">You pay</span>
-                            <span id="ngnDisplay" class="text-lg font-extrabold text-brand-darkText">₦0.00</span>
+                        <div class="flex items-center justify-between gap-3 py-3.5">
+                            <span class="text-xs text-brand-lightText">Account name</span>
+                            <span class="flex items-center gap-2 min-w-0">
+                                <span id="vaName" class="text-[14px] font-semibold text-brand-darkText truncate"></span>
+                                <button type="button" onclick="copyField('vaName', this)" aria-label="Copy account name" class="copy-btn shrink-0 p-1 text-brand-lightText hover:text-brand-blue transition-colors"></button>
+                            </span>
                         </div>
                     </div>
 
-                    <button id="initiateBtn" class="add-money-btn w-full mt-5 bg-brand-red hover:bg-red-700 text-white py-3.5 rounded-full text-[13px] font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                        <span>Pay Securely Now</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </button>
+                    <div class="mt-3.5 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-left">
+                        <svg class="w-4 h-4 text-brand-blue shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-[12px] sm:text-[13px] leading-relaxed text-brand-midText">This account is yours alone and never expires. Send money to it from any bank app, and your wallet is funded as soon as the transfer arrives.</p>
+                    </div>
+
+                    <!-- Top-up Fee (only when one is set) -->
+                    <div id="feeNote" class="hidden mt-2.5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z"></path></svg>
+                        <p id="feeNoteText" class="text-[12px] sm:text-[13px] leading-relaxed text-amber-800"></p>
+                    </div>
+
+                    <p class="mt-3.5 inline-flex items-center gap-1.5 text-[11px] text-brand-lightText">
+                        <span class="w-3 h-3 border-2 border-brand-blue/20 border-t-brand-blue rounded-full animate-spin"></span>
+                        Listening for transfers...
+                    </p>
                 </div>
             </section>
 
-            <div class="space-y-6">
-            <!-- How It Works (round icons like the dashboard Quick Links) -->
-            <section>
-                <h2 class="text-base md:text-lg font-semibold text-brand-lightText mb-3 md:mb-4">How It Works</h2>
-                <div class="grid grid-cols-3 gap-2 md:gap-4">
-                    <div class="flex flex-col items-center gap-2">
-                        <span class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border border-brand-border flex items-center justify-center">
-                            <svg class="w-8 h-8 md:w-10 md:h-10 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        </span>
-                        <span class="text-xs md:text-sm font-medium text-brand-darkText text-center leading-tight">Enter amount</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-2">
-                        <span class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border border-brand-border flex items-center justify-center">
-                            <svg class="w-8 h-8 md:w-10 md:h-10 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                        </span>
-                        <span class="text-xs md:text-sm font-medium text-brand-darkText text-center leading-tight">Pay with Flutterwave</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-2">
-                        <span class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border border-brand-border flex items-center justify-center">
-                            <svg class="w-8 h-8 md:w-10 md:h-10 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </span>
-                        <span class="text-xs md:text-sm font-medium text-brand-darkText text-center leading-tight">Wallet credited</span>
-                    </div>
-                </div>
+            <!-- Payment Received (replaces the account card when a transfer lands) -->
+            <section id="successCard" class="hidden pt-4 md:pt-8 text-center">
+                <span class="inline-flex w-14 h-14 rounded-2xl bg-green-50 text-green-600 items-center justify-center">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+                <h2 class="text-lg md:text-xl font-bold text-brand-darkText mt-4">Payment received</h2>
+                <p class="text-[13px] text-brand-lightText mt-1"><strong id="successAmount" class="text-brand-darkText"></strong> added to your wallet.</p>
+                <a href="/virtual-numbers" class="mt-6 w-full bg-brand-blue hover:bg-blue-700 text-white py-3.5 rounded-full text-[14px] font-bold transition-all active:scale-95 shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+                    Buy a number
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <button type="button" onclick="showAccountCard()" class="w-full text-center text-[13px] font-semibold text-brand-lightText hover:text-brand-blue mt-3">Top up again</button>
             </section>
 
             <!-- Top-up History (same list style as the dashboard Activity) -->
-            <section>
-                <div class="flex items-center justify-between mb-3 md:mb-4">
-                    <h2 class="text-base md:text-lg font-semibold text-brand-lightText">Top-up History</h2>
-                    <button onclick="fetchTransactionHistory()" class="pr-4 text-xs md:text-[13px] font-semibold text-brand-blue hover:underline">Refresh</button>
+            <section class="mt-10">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-[13px] font-bold uppercase tracking-widest text-brand-lightText">Top-up History</h2>
+                    <button onclick="fetchTransactionHistory()" class="text-xs md:text-[13px] font-semibold text-brand-blue hover:underline">Refresh</button>
                 </div>
                 <div id="historyList" class="bg-white border border-brand-border rounded-2xl divide-y divide-brand-border overflow-hidden">
                     <p class="px-4 py-5 text-center text-xs text-brand-lightText">Loading top-ups...</p>
                 </div>
             </section>
-            </div>
+
             </div>
         </main>
     </div>
@@ -279,22 +260,20 @@
 <script>
     const API_BASE_URL = '/api';
     const token = localStorage.getItem('userToken');
-    let topupFeeNGN = 0;
+    let lastKnownBalance = null; // Set by the first profile sync; a later rise means a transfer landed
 
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     const formatNGN = (val) => `₦${(Number(val) || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const METHOD_LABELS = { bank_transfer: 'Bank Transfer', admin_credit: 'Admin Credit', admin_debit: 'Admin Debit', referral_bonus: 'Referral Bonus' };
 
-    // --- 1. Maintenance & Top-up Fee ---
+    // --- 1. Maintenance Check ---
     async function checkMaintenance() {
         try {
             const response = await fetch(`${API_BASE_URL}/system-status`);
             const status = await response.json();
             if (status.maintenanceMode === true) {
                 window.location.href = '/maintenance';
-                return;
             }
-            topupFeeNGN = Math.max(Number(status.topupFeeNGN) || 0, 0);
-            updateDisplay();
         } catch (err) {
             console.error("Status check failed", err);
         }
@@ -356,72 +335,104 @@
 
             if (userRes.ok && userData) {
                 const user = userData.user || userData;
-                setBalance(user.balance);
+                const balance = Number(user.balance) || 0;
+                setBalance(balance);
                 localStorage.setItem('dashboard_cache', JSON.stringify({ user: user }));
                 localStorage.setItem('userData', JSON.stringify(user));
-            }
 
-            // 2. Proceed with payment verification logic
-            verifyPaymentOnLoad();
+                // 2. A Higher Balance Than Last Time Means A Transfer Was Credited
+                if (lastKnownBalance !== null && balance > lastKnownBalance) {
+                    showSuccessCard(balance - lastKnownBalance);
+                    fetchTransactionHistory();
+                }
+                lastKnownBalance = balance;
+            }
         } catch (err) {
             console.error("Sync Error:", err);
         }
     }
 
-    // --- 5. Amount Picker & Summary ---
-    function updateDisplay() {
-        const credit = Math.round(parseFloat(document.getElementById('ngnInput').value) || 0);
-        const fee = credit > 0 ? topupFeeNGN : 0;
-        document.getElementById('creditDisplay').innerText = formatNGN(credit);
-        document.getElementById('feeDisplay').innerText = formatNGN(fee);
-        document.getElementById('feeRow').classList.toggle('hidden', topupFeeNGN <= 0);
-        document.getElementById('ngnDisplay').innerText = formatNGN(credit + fee);
-    }
-
-    function setAmount(val, btn) {
-        document.getElementById('ngnInput').value = val;
-        document.querySelectorAll('.amount-chip').forEach(b => b.classList.remove('is-active'));
-        if (btn) btn.classList.add('is-active');
-        updateDisplay();
-    }
-
-    document.getElementById('ngnInput').addEventListener('input', () => {
-        document.querySelectorAll('.amount-chip').forEach(b => b.classList.remove('is-active'));
-        updateDisplay();
-    });
-
-    // --- 6. Start Flutterwave Payment ---
-    const PAY_BUTTON_HTML = document.getElementById('initiateBtn').innerHTML;
-    document.getElementById('initiateBtn').addEventListener('click', async function() {
-        const amountNGN = Math.round(parseFloat(document.getElementById('ngnInput').value));
-        if (!amountNGN || amountNGN < 100) {
-            alert("Please enter at least ₦100.");
-            return;
-        }
-
-        this.disabled = true;
-        this.innerHTML = `<span>Processing...</span>`;
+    // --- 5. Top-up Account ---
+    async function loadVirtualAccount() {
+        const show = (id) => ['accountLoading', 'accountError', 'accountDetails'].forEach(el => document.getElementById(el).classList.toggle('hidden', el !== id));
+        show('accountLoading');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/initiate-topup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ amountNGN })
+            const response = await fetch(`${API_BASE_URL}/virtual-account`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401) return logout();
-
             const data = await response.json();
-            if (data.success && data.link) {
-                window.location.href = data.link;
+
+            if (!data.success || !data.account) {
+                document.getElementById('accountErrorText').innerText = data.message || "Please try again in a moment.";
+                show('accountError');
                 return;
             }
-            alert(data.message || "Failed to initialize payment.");
+
+            document.getElementById('vaBank').innerText = data.account.bankName;
+            document.getElementById('vaNumber').innerText = formatAccountNumber(data.account.accountNumber);
+            document.getElementById('vaNumber').dataset.raw = data.account.accountNumber;
+            document.getElementById('vaName').innerText = data.account.accountName;
+
+            const fee = Math.max(Number(data.topupFeeNGN) || 0, 0);
+            document.getElementById('feeNote').classList.toggle('hidden', fee <= 0);
+            document.getElementById('feeNoteText').innerText = `A ${formatNGN(fee)} fee is taken from each transfer. For example, send ${formatNGN(fee + 1000)} to get ${formatNGN(1000)} in your wallet.`;
+            show('accountDetails');
         } catch (err) {
-            alert("Connection error.");
+            document.getElementById('accountErrorText').innerText = "Connection error.";
+            show('accountError');
         }
-        this.disabled = false;
-        this.innerHTML = PAY_BUTTON_HTML;
-    });
+    }
+
+    // Groups 10 digits as 123 456 7890 so it's easy to read out and check
+    function formatAccountNumber(number) {
+        const digits = String(number || '');
+        return /^\d{10}$/.test(digits) ? `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}` : digits;
+    }
+
+    // Small copy icon beside a value; turns into a green tick for 2 s once copied
+    const COPY_ICON = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`;
+    const COPIED_ICON = `<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>`;
+    document.querySelectorAll('.copy-btn').forEach(btn => { btn.innerHTML = COPY_ICON; });
+
+    async function copyField(elementId, btn) {
+        const el = document.getElementById(elementId);
+        const text = el.dataset.raw || el.innerText;
+        try {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (clipboardErr) {
+                // Older phones and in-app browsers: copy through a hidden text box instead
+                const box = document.createElement('textarea');
+                box.value = text;
+                box.setAttribute('readonly', '');
+                box.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+                document.body.appendChild(box);
+                box.select();
+                const copied = document.execCommand('copy');
+                box.remove();
+                if (!copied) throw clipboardErr;
+            }
+            btn.innerHTML = COPIED_ICON;
+            setTimeout(() => { btn.innerHTML = COPY_ICON; }, 2000);
+        } catch (err) {
+            alert("Couldn't copy. Press and hold the text to copy it.");
+        }
+    }
+
+    // --- 6. Payment Received / Top Up Again ---
+    function showSuccessCard(amountNGN) {
+        document.getElementById('successAmount').innerText = formatNGN(amountNGN);
+        document.getElementById('accountCard').classList.add('hidden');
+        document.getElementById('successCard').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showAccountCard() {
+        document.getElementById('successCard').classList.add('hidden');
+        document.getElementById('accountCard').classList.remove('hidden');
+    }
 
     // --- 7. Top-up History ---
     async function fetchTransactionHistory() {
@@ -466,7 +477,7 @@
                 return `<div class="flex items-center gap-3 px-4 py-2.5">
                     ${icon}
                     <div class="min-w-0 flex-1">
-                        <p class="text-[13px] font-semibold text-brand-darkText truncate">Deposit via ${escapeHtml(tx.paymentMethod || 'Flutterwave')}</p>
+                        <p class="text-[13px] font-semibold text-brand-darkText truncate">Deposit via ${escapeHtml(METHOD_LABELS[tx.paymentMethod] || tx.paymentMethod || 'Bank Transfer')}</p>
                         <p class="text-[11px] text-brand-lightText">${escapeHtml(time)} • ${escapeHtml(date)}</p>
                     </div>
                     <div class="shrink-0 text-right">
@@ -481,87 +492,15 @@
         }
     }
 
-    // --- 8. Payment Verification (after the Flutterwave redirect) ---
-    function showStatus(kind, title, messageHtml) {
-        const styles = {
-            success: { box: 'bg-green-50 text-green-600', path: 'M5 13l4 4L19 7' },
-            error: { box: 'bg-red-50 text-red-500', path: 'M6 18L18 6M6 6l12 12' },
-            warning: { box: 'bg-amber-50 text-amber-600', path: 'M12 9v2m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z' }
-        }[kind];
-        const iconEl = document.getElementById('statusIcon');
-        iconEl.className = `w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${styles.box}`;
-        iconEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="${styles.path}"></path></svg>`;
-        document.getElementById('statusTitle').innerText = title;
-        document.getElementById('statusMessage').innerHTML = messageHtml;
-    }
+    // --- 8. Watch For Incoming Transfers (every 20 s while the tab is open and visible) ---
+    setInterval(() => {
+        if (document.visibilityState === 'visible') syncWithBackend();
+    }, 20000);
 
-    async function verifyPaymentOnLoad() {
-        const params = new URLSearchParams(window.location.search);
-        const transactionId = params.get('transaction_id');
-        const status = params.get('status');
-        if (!transactionId || !['successful', 'completed'].includes(status)) return;
-
-        const alertBox = document.getElementById('statusAlert');
-        const redirectBtn = document.getElementById('manualRedirectBtn');
-        alertBox.classList.remove('hidden');
-        alertBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/verify-topup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ transactionId })
-            });
-            const data = await response.json().catch(() => ({}));
-            if (response.status === 401) return logout();
-            if (response.status >= 500 || (!response.ok && !data.message)) throw new Error(data.message || `Server Error: ${response.status}`);
-
-            if (data.success) {
-                // SUCCESS STATE UI
-                const credited = formatNGN(data.amountNGN || data.amount);
-                setBalance(data.newBalance);
-                showStatus('success', 'Deposit confirmed', `
-                    <span class="font-bold text-green-600">${credited}</span> has been added to your wallet.
-                    <span class="block mt-1">Taking you to your dashboard in <span id="countdown">3</span>s...</span>`);
-                fetchTransactionHistory();
-
-                redirectBtn.classList.remove('hidden');
-                redirectBtn.innerText = "Go to Dashboard";
-                redirectBtn.onclick = () => window.location.href = '/dashboard';
-
-                let timeLeft = 3;
-                const timer = setInterval(() => {
-                    timeLeft--;
-                    const countdownEl = document.getElementById('countdown');
-                    if (countdownEl) countdownEl.innerText = timeLeft;
-                    if (timeLeft <= 0) {
-                        clearInterval(timer);
-                        window.location.href = '/dashboard';
-                    }
-                }, 1000);
-            } else {
-                // API RETURNED ERROR
-                showStatus('error', 'Payment not confirmed', escapeHtml(data.message || "The payment provider could not confirm this transaction."));
-                redirectBtn.classList.remove('hidden');
-                redirectBtn.innerText = "Go to Dashboard";
-                redirectBtn.onclick = () => window.location.href = '/dashboard';
-            }
-        } catch (err) {
-            console.error("Topup Verify Error:", err);
-            showStatus('warning', 'We could not confirm this yet', `
-                Your payment went through on Flutterwave, but we couldn't update your wallet yet.
-                <span class="block mt-1 font-bold text-brand-darkText">Transaction ID: ${escapeHtml(transactionId)}</span>
-                <span class="block mt-1">Refresh this page, or contact support with the ID above.</span>`);
-            redirectBtn.classList.remove('hidden');
-            redirectBtn.innerText = "Refresh";
-            redirectBtn.onclick = () => location.reload();
-        }
-    }
-
-    updateDisplay();
     window.onload = () => {
         checkMaintenance();
         syncWithBackend();
+        loadVirtualAccount();
         fetchTransactionHistory();
     };
 </script>

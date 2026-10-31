@@ -57,6 +57,26 @@ const smsBowerClient = axios.create({
 });
 const SMS_ALLOCATION_TIMEOUT_MS = 7000; // getNumberV2 runs after the debit (see handlePurchaseWithWallet)
 
+// --- NEURAPAY (WALLET TOP-UPS BY BANK TRANSFER) ---
+// Every user gets one permanent Paga account number. A transfer into it fires the signed
+// payment.successful webhook, and the wallet is credited after NeuraPay confirms the transfer.
+const neurapayClient = axios.create({
+    baseURL: (process.env.NEURAPAY_BASE_URL || 'https://neurapay.com.ng/api/v1').replace(/\/$/, ''),
+    headers: {
+        Authorization: `Bearer ${process.env.NEURAPAY_SECRET_KEY}`,
+        'X-Business-Id': process.env.NEURAPAY_BUSINESS_ID || '',
+        'Content-Type': 'application/json'
+    },
+    timeout: 15000
+});
+
+// Set NEURAPAY_DEMO_MODE=true in the local .env to hand out fake accounts and settle fake
+// transfers (references 'DEMO-TXN-<accountNumber>-<amount>-<anything>') with no NeuraPay keys.
+// Same gate as SMS_DEMO_MODE: never active when NODE_ENV is 'production'.
+function isNeurapayDemoMode() {
+    return process.env.NEURAPAY_DEMO_MODE === 'true' && process.env.NODE_ENV !== 'production';
+}
+
 // --- SMS DEMO MODE (LOCAL TESTING ONLY) ---
 // Set SMS_DEMO_MODE=true in the local .env to click through the whole SMS flow
 // (services, countries, buy, code, cancel, request-another) with no SMSBower key.
@@ -253,6 +273,279 @@ function priceAccountProduct(vendorPriceNGN, override, settings) {
     };
 }
 
+// --- PHONE REFILL VENDOR (Bitrefill) ---
+// US prepaid top-ups (T-Mobile, AT&T, Verizon...) resold from Bitrefill, sold on the eSIM Refill page.
+// Bitrefill's website only shows US operators to US visitors, but the API takes the country as a
+// parameter, so no VPN is needed. Docs: https://docs.bitrefill.com (personal API key from
+// bitrefill.com/account/developers). Prices are in the Bitrefill account's currency, which must be USD.
+const bitrefillClient = axios.create({
+    baseURL: (process.env.BITREFILL_BASE_URL || 'https://api.bitrefill.com/v2').replace(/\/$/, ''),
+    headers: { 'Authorization': `Bearer ${process.env.BITREFILL_API_KEY}` },
+    timeout: 15000
+});
+const PHONE_REFILL_COUNTRIES = ['US']; // Operators from these countries are listed and sold
+const REFILL_CATEGORIES = ['refill', 'pin', 'bundles']; // Bitrefill categories for top-ups, PINs and plan bundles
+// Bitrefill's "Popular Phone Refill products in USA" order (bitrefill.com/us, checked 2026-10-31). The API has
+// no popularity field, so these lead the list and everything else follows A-Z, as on Bitrefill.
+const REFILL_POPULAR_ORDER = [
+    't-mobile-usa', 't-mobile-pin-usa', 'atandt-usa', 'atandt-pin-usa',
+    'lycamobile-usa', 'verizon-usa', 'verizon-pin-usa', 'ultra-mobile-usa',
+    'metro-by-t-mobile-us-operator-service-fee-applied-usa', 'airvoice-pin-usa', 'boost-mobile-usa', 'cricket-usa',
+    'total-by-verizon-rtr', 'lycamobile-usa-bundle', 'simple-mobile-pin-usa', 'lycamobile-pin-usa',
+    'h2o-paygo-usa', 'h2o-monthly-rtr-usa', 'simple-mobile-usa', 'cricket-paygo-usa',
+    'red-pocket-pin-usa', 'cricket-paygo-operator-service-fee-applied-usa', 'pageplus-pin-usa', 'access-wireless-pin-usa'
+];
+
+// Catalog order: Bitrefill's popular list, then the rest A-Z with out-of-stock ones last
+function compareRefillProducts(a, b) {
+    const rank = (p) => { const i = REFILL_POPULAR_ORDER.indexOf(p.id); return i === -1 ? Infinity : i; };
+    const [ra, rb] = [rank(a), rank(b)];
+    if (ra !== rb) return ra - rb;
+    return (b.inStock - a.inStock) || (a.sortName || a.name).localeCompare(b.sortName || b.name, 'en', { sensitivity: 'base' });
+}
+const REFILL_BUY_TIMEOUT_MS = 8000; // POST /invoices runs after the wallet debit (see handlePurchaseWithWallet)
+const REFILL_CATALOG_TTL = 10 * 60 * 1000; // Bitrefill allows 1,000 product reads an hour
+const REFILL_STATUS_CHECK_GAP_MS = 60 * 1000; // GET /invoices/{id} allows 60 calls per 10 minutes
+const REFILL_CATALOG_MAX_PAGES = 20; // 50 products a page
+let cachedRefillCatalog = null;
+let lastRefillCatalogFetch = 0;
+let cachedRefillAccount = null;
+let lastRefillAccountFetch = 0;
+
+// --- REFILL DEMO MODE (LOCAL TESTING ONLY) ---
+// Set REFILL_DEMO_MODE=true in the local .env to use a fake Bitrefill catalog with no API key.
+// Gated like SMS demo mode, so it can never run on Vercel. The wallet is still really debited.
+// Test numbers: ending 0000 is refused, 1111 is delivered after ~25 s, 2222 fails after ~25 s.
+function isRefillDemoMode() {
+    return process.env.REFILL_DEMO_MODE === 'true' && process.env.NODE_ENV !== 'production';
+}
+const REFILL_DEMO_DELAY_MS = 25000;
+const REFILL_DEMO_PRODUCTS = [
+    { id: 't-mobile-usa', name: 'T-Mobile', image: 'https://i.imgur.com/pyDMW1t.png', values: [10, 15, 25, 30, 40, 50] },
+    { id: 'at-t-usa', name: 'AT&T', image: 'https://i.imgur.com/WDCo1gM.png', values: [15, 25, 35, 50] },
+    { id: 'verizon-usa', name: 'Verizon', values: [15, 30, 40, 50] },
+    { id: 'lyca-mobile-usa', name: 'Lyca Mobile', values: [19, 23, 29] },
+    { id: 'ultra-mobile-usa', name: 'Ultra Mobile', values: [19, 29, 49] },
+    { id: 'h2o-wireless-usa', name: 'H2O Wireless', values: [20, 30], inStock: false },
+    { id: 't-mobile-pin-usa', name: 'T-Mobile PIN', values: [10, 25, 50], pin: true }
+];
+
+// Fake Bitrefill responses with the same shapes as the live API
+function bitrefillDemoReply(method, path, params = {}, body = {}) {
+    const toProduct = (p) => ({
+        id: p.id,
+        name: p.name,
+        categories: [p.pin ? 'pin' : 'refill'],
+        recipient_type: p.pin ? 'none' : 'phone_number',
+        country_code: 'US',
+        country_name: 'United States',
+        currency: 'USD',
+        image: p.image || '',
+        in_stock: p.inStock !== false,
+        packages: p.values.map(value => ({ id: `${p.id}<&>${value}`, value: String(value), price: Number((value * 1.03).toFixed(2)) }))
+    });
+    if (path === '/accounts/balance') return { status: 200, data: { data: { balance: 500, currency: 'USD' } } };
+    if (path === '/products' && method === 'get') {
+        const start = Number(params.start) || 0;
+        return { status: 200, data: { data: REFILL_DEMO_PRODUCTS.slice(start, start + 50).map(toProduct) } };
+    }
+    if (path.startsWith('/products/')) {
+        const product = REFILL_DEMO_PRODUCTS.find(p => p.id === decodeURIComponent(path.slice('/products/'.length)));
+        return product ? { status: 200, data: { data: toProduct(product) } } : { status: 404, data: { message: 'Product not found' } };
+    }
+    if (path === '/check_phone_number') {
+        // Numbers ending 9999 can't be matched (a shortlist comes back), 0000 match nothing
+        const phone = String(params.phone_number || '');
+        if (phone.endsWith('0000')) return { status: 404, data: { message: 'No providers found' } };
+        if (phone.endsWith('9999')) return { status: 200, data: { operator_found: false, data: ['t-mobile-usa', 'at-t-usa'].map(id => toProduct(REFILL_DEMO_PRODUCTS.find(p => p.id === id))) } };
+        return { status: 200, data: { operator_found: true, data: toProduct(REFILL_DEMO_PRODUCTS[0]) } };
+    }
+    if (path === '/invoices' && method === 'post') {
+        const item = body.products?.[0] || {};
+        const phone = String(item.phone_number || '');
+        if (phone.endsWith('0000')) return { status: 400, data: { message: 'Invalid phone number', error_code: 'invalid_phone_number' } };
+        const tail = phone.endsWith('1111') ? 'slow' : (phone.endsWith('2222') ? 'fail' : 'now');
+        const invoiceId = `DEMO-INV-${Date.now()}-${tail}`;
+        return { status: 200, data: { data: buildDemoInvoice(invoiceId, item) } };
+    }
+    if (path.startsWith('/invoices/') && method === 'get') {
+        return { status: 200, data: { data: buildDemoInvoice(decodeURIComponent(path.slice('/invoices/'.length)), {}) } };
+    }
+    return { status: 404, data: { message: 'Unknown demo endpoint.' } };
+}
+
+// A demo invoice's outcome is written into its id: DEMO-INV-<created ms>-<now|slow|fail>
+function buildDemoInvoice(invoiceId, item) {
+    const [, , createdAt, tail] = invoiceId.split('-');
+    const isDue = Date.now() - Number(createdAt) >= REFILL_DEMO_DELAY_MS;
+    const status = tail === 'now' ? 'complete' : (!isDue ? 'pending' : (tail === 'fail' ? 'denied' : 'complete'));
+    const orderStatus = { complete: 'delivered', pending: 'processing', denied: 'failed' }[status];
+    const value = Number(String(item.package_id || '').split('<&>')[1]) || 0;
+    // Fake 12-digit PIN, the same on every read of this invoice (top-up orders ignore it)
+    const pin = `9${String(createdAt).slice(-11)}`;
+    return {
+        id: invoiceId,
+        status,
+        payment: { method: 'balance', currency: 'USD', price: value ? Number((value * 1.03).toFixed(2)) : null },
+        orders: [{
+            id: `DEMO-ORD-${createdAt}`,
+            status: orderStatus,
+            product: { id: item.product_id || null, value },
+            ...(orderStatus === 'delivered' ? { redemption_info: { code: pin, other: `PIN: ${pin}\nDial *233 and enter the PIN to load it.` } } : {})
+        }]
+    };
+}
+
+// One entry point for every Bitrefill call. Resolves to { status, data } for any HTTP reply
+// (errors included) and throws only when no reply arrived (timeout or network failure).
+async function bitrefillRequest(method, path, { params, body, timeout } = {}) {
+    if (isRefillDemoMode()) return bitrefillDemoReply(method, path, params, body);
+    try {
+        const response = await bitrefillClient.request({ method, url: path, params, data: body, ...(timeout ? { timeout } : {}) });
+        return { status: response.status, data: response.data };
+    } catch (err) {
+        if (err.response) return { status: err.response.status, data: err.response.data || {} };
+        throw err;
+    }
+}
+
+// What the customer sees for one amount: "$15" for plain numbers, otherwise Bitrefill's own
+// text ("20 USD", "2 GB 30 Days", "Unlimited National Plans")
+function refillValueLabel(currency, value) {
+    return /^\d+(\.\d+)?$/.test(value) ? `${currency === 'USD' ? '$' : `${currency} `}${value}` : value;
+}
+
+// Bitrefill sends a logo as a Cloudinary id ("2024_logos/t-mobile_logo"), served from its own
+// Cloudinary account as a transparent PNG (160 px tall)
+function refillLogoUrl(image) {
+    const id = String(image || '').trim();
+    if (/^https:\/\//i.test(id)) return id;
+    return /^[\w-]+(\/[\w-]+)*$/.test(id) ? `https://res.cloudinary.com/bitrefill/image/upload/h_160/${id}.png` : null;
+}
+
+// One Bitrefill product in our shape. Only fixed packages are sold (ranged amounts are skipped).
+function normalizeRefillProduct(p) {
+    const currency = String(p?.currency || 'USD').toUpperCase(); // Face value currency, e.g. a $15 top-up
+    const rawPackages = Array.isArray(p?.packages) ? p.packages : (p?.packages ? [p.packages] : []);
+    const packages = rawPackages
+        .map(pkg => {
+            const value = String(pkg?.value ?? '').trim().slice(0, 80);
+            // vendorPrice is in the Bitrefill account's currency (satoshis on a BTC account)
+            return { id: String(pkg?.id ?? ''), value, label: refillValueLabel(currency, value), vendorPrice: Number(pkg?.price) };
+        })
+        .filter(pkg => pkg.id && pkg.value && Number.isFinite(pkg.vendorPrice) && pkg.vendorPrice > 0)
+        .sort((a, b) => {
+            // Numeric amounts low to high; text bundles keep Bitrefill's order after them
+            const [x, y] = [parseFloat(a.value), parseFloat(b.value)];
+            if (Number.isNaN(x) || Number.isNaN(y)) return Number.isNaN(x) - Number.isNaN(y);
+            return (x - y) || (a.vendorPrice - b.vendorPrice);
+        });
+    return {
+        id: String(p?.id || ''),
+        name: String(p?.base_name || p?.name || 'Operator').trim().slice(0, 120), // "T-Mobile PIN" (name adds " USA")
+        sortName: String(p?.name || p?.base_name || '').trim().slice(0, 120), // Bitrefill sorts A-Z on the full name
+        delivery: /phone/i.test(String(p?.recipient_type || '')) || p?.type === 'phone_refill' ? 'topup' : 'pin', // pin = a code, no number
+        countryCode: String(p?.country_code || '').toUpperCase(),
+        countryName: String(p?.country_name || '').trim().slice(0, 80),
+        currency,
+        image: refillLogoUrl(p?.image),
+        logoBg: /^#[0-9a-f]{6}$/i.test(String(p?.logo_background || '')) ? p.logo_background : '#FFFFFF', // Tile colour behind the logo
+        inStock: p?.in_stock !== false,
+        packages
+    };
+}
+
+// Phone top-ups (sent straight to a number) and phone PINs (a code the customer loads themselves).
+// The product list also holds gift cards and eSIMs for the same country, which are skipped.
+function isPhoneRefillProduct(p) {
+    const recipient = String(p?.recipient_type || '').toLowerCase();
+    const categories = Array.isArray(p?.categories) ? p.categories : [];
+    if (p?.type === 'phone_refill' || recipient.includes('phone')) return true;
+    return recipient === 'none' && categories.some(c => REFILL_CATEGORIES.includes(c));
+}
+
+// Bitrefill account balance and currency, cached with the catalog (the balance call allows 60 per 10 minutes)
+async function getRefillAccount(forceFresh = false) {
+    const now = Date.now();
+    if (!forceFresh && cachedRefillAccount && (now - lastRefillAccountFetch < REFILL_CATALOG_TTL)) return cachedRefillAccount;
+
+    const reply = await bitrefillRequest('get', '/accounts/balance', { timeout: 8000 });
+    const account = reply.data?.data || reply.data || {};
+    if (reply.status !== 200 || !account.currency) {
+        throw new Error(`Bitrefill /accounts/balance replied ${reply.status}: ${reply.data?.message || ''}`);
+    }
+    cachedRefillAccount = { balance: Number(account.balance), currency: String(account.currency).toUpperCase() };
+    lastRefillAccountFetch = now;
+    return cachedRefillAccount;
+}
+
+// Every phone top-up operator in PHONE_REFILL_COUNTRIES, cached per instance for 10 minutes
+async function getRefillCatalog(forceFresh = false) {
+    const now = Date.now();
+    if (!forceFresh && cachedRefillCatalog && (now - lastRefillCatalogFetch < REFILL_CATALOG_TTL)) return cachedRefillCatalog;
+
+    const products = [];
+    for (let page = 0; page < REFILL_CATALOG_MAX_PAGES; page++) {
+        const reply = await bitrefillRequest('get', '/products', {
+            params: { country: PHONE_REFILL_COUNTRIES.join(','), category: REFILL_CATEGORIES.join(','), start: page * 50, limit: 50 }
+        });
+        if (reply.status !== 200) throw new Error(`Bitrefill /products replied ${reply.status}: ${reply.data?.message || ''}`);
+        const batch = Array.isArray(reply.data?.data) ? reply.data.data : [];
+        products.push(...batch.filter(isPhoneRefillProduct).map(normalizeRefillProduct));
+        if (batch.length < 50) break;
+    }
+
+    cachedRefillCatalog = products.filter(p => p.id && p.packages.length > 0 && PHONE_REFILL_COUNTRIES.includes(p.countryCode));
+    lastRefillCatalogFetch = now;
+    return cachedRefillCatalog;
+}
+
+// USD per unit of the account's price currency. A personal account funded in USD still reports
+// BTC from /accounts/balance and prices packages in satoshis, while the USD balance pays at the
+// dashboard's USD price. Most US top-ups sell at face value there (a $15 T-Mobile cost $15), so the
+// low end of satoshis per face dollar across the catalog is Bitrefill's own BTC rate (no outside
+// price feed to go stale). Operators priced above face then show slightly above face, never below.
+async function getRefillUsdPerUnit(currency) {
+    if (currency === 'USD') return 1;
+    if (currency !== 'BTC') throw new Error(`Bitrefill account currency ${currency} is not supported`);
+
+    const satsPerUsd = (await getRefillCatalog())
+        .filter(p => p.currency === 'USD' && p.delivery === 'topup') // Some PINs list values in other units
+        .flatMap(p => p.packages)
+        .filter(pkg => /^\d+(\.\d+)?$/.test(pkg.value) && Number(pkg.value) > 0)
+        .map(pkg => pkg.vendorPrice / Number(pkg.value))
+        .sort((a, b) => a - b);
+    if (!satsPerUsd.length) throw new Error('Could not work out the Bitrefill BTC rate');
+    return 1 / satsPerUsd[Math.floor(satsPerUsd.length * 0.1)]; // 10th percentile skips one-off discounts
+}
+
+// Selling price for one top-up amount: the admin's fixed amount when set, otherwise Bitrefill's USD
+// price × usdToNgnRate + the global refill markup %. A fixed amount below cost is ignored.
+// Bitrefill's USD price in naira, rounded up. Rounding to kobo first stops float noise
+// (10.30 × 1400 = 14420.000000000002) from adding a naira, matching addAccountMarkup.
+const refillCostNGN = (priceUsd, rate) => Math.ceil(Math.round(priceUsd * rate * 100) / 100);
+
+function priceRefillPackage(priceUsd, fixedPriceNGN, settings, operatorMarkup = null) {
+    const rate = Number(settings?.usdToNgnRate) > 0 ? Number(settings.usdToNgnRate) : 1400;
+    const vendorCostNGN = refillCostNGN(priceUsd, rate);
+
+    // 1. The Amount's Own Fixed Price
+    const fixedPrice = Math.round(Number(fixedPriceNGN) || 0);
+    if (fixedPrice > 0 && fixedPrice >= vendorCostNGN) {
+        return { vendorCostNGN, priceNGN: fixedPrice, pricing: { level: 'package', type: 'fixed', value: fixedPrice }, fixedBelowCost: false };
+    }
+
+    // 2. The Operator's Markup %, Else The Global Refill Markup %
+    const hasOperatorMarkup = Number.isFinite(operatorMarkup) && operatorMarkup >= 0;
+    const value = hasOperatorMarkup ? operatorMarkup : (Number(settings?.refillMarkupPercentage) || 0);
+    return {
+        vendorCostNGN,
+        priceNGN: addAccountMarkup(priceUsd * rate, value),
+        pricing: { level: hasOperatorMarkup ? 'product' : 'global', type: 'markup', value },
+        fixedBelowCost: fixedPrice > 0
+    };
+}
+
 // --- SMS AUTO-EXPIRY ---
 // Refunds SmsNumber orders still pending after 20 minutes. Serverless instances sleep between
 // requests, so there's no in-process timer: this runs lazily whenever a user loads their
@@ -351,7 +644,8 @@ const RATE_LIMITS = {
     'change-passwords': { max: 10, windowMs: 15 * 60 * 1000 },
     'purchase-with-wallet': { max: 30, windowMs: 60 * 1000 },
     'request-another-code': { max: 20, windowMs: 60 * 1000 },
-    'initiate-topup': { max: 20, windowMs: 15 * 60 * 1000 }
+    'virtual-account': { max: 20, windowMs: 15 * 60 * 1000 },
+    'phone-refill-lookup': { max: 20, windowMs: 60 * 1000 } // Bitrefill number lookups
 };
 
 function getClientIp(req) {
@@ -388,7 +682,10 @@ async function isRateLimited(req, action) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+    // Keep the exact bytes: the NeuraPay webhook signature is an HMAC of the raw body
+    verify: (req, res, buf) => { req.rawBody = buf; }
+}));
 app.use((req, res, next) => {
     if (req.body && typeof req.body === 'object') req.body = stripMongoOperators(req.body);
     next();
@@ -544,6 +841,7 @@ const userSchema = new mongoose.Schema({
     balance: { type: Number, default: 0, min: [0, "Balance cannot be negative"] },   
     bonusBalance: { type: Number, default: 0 },    
     hasDeposited: { type: Boolean, default: false },
+    refillLockUntil: { type: Date }, // Set while a Bitrefill top-up is being bought (one at a time per user)
     status: { type: String, enum: ['active', 'suspended'], default: 'active', index: true },
     suspendedAt: { type: Date }, // Set with status 'suspended', cleared on activate
     suspendedReason: { type: String }, // Admin's note on why, shown on the users page
@@ -554,11 +852,19 @@ const userSchema = new mongoose.Schema({
     // big enough first top-up, 'credited' once the referrer has been counted. Unset on accounts
     // counted by the old verify-time logic, so they are never counted twice.
     referralStatus: { type: String, enum: ['pending', 'qualified', 'credited'] },
+    // The user's own NeuraPay account for wallet top-ups (created on first visit to Add Money)
+    virtualAccount: {
+        accountNumber: { type: String },
+        accountName: { type: String },
+        bankName: { type: String },
+        reference: { type: String } // The VA-<userId> reference sent to NeuraPay
+    },
     resetPasswordToken: String,
     resetPasswordExpires: Date
 }, { timestamps: true });
 
 userSchema.index({ email: 1, referralCode: 1 });
+userSchema.index({ 'virtualAccount.accountNumber': 1 }, { unique: true, sparse: true }); // Webhook finds the user by it
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // --- SYSTEM SETTINGS (Exchange Rate Removed) ---
@@ -569,6 +875,7 @@ const systemSettingsSchema = new mongoose.Schema({
     smsMarkupPercentage: { type: Number, default: 0 }, // Applied to SMS number prices only
     smsFloorPriceNGN: { type: Number, default: 0, min: 0 }, // Lowest marked-up SMS price (fixed prices ignore it)
     accountMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to Sameeha accounts & VPN without their own price
+    refillMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to Bitrefill phone top-ups without their own price
     usdToNgnRate: { type: Number, default: 1400, min: 1 }, // Converts SMSBower USD prices to NGN
     noticeBarText: { type: String, default: "Welcome to DeemaxHub!" },
     supportWhatsapp: { type: String, default: "" },
@@ -821,6 +1128,24 @@ const accountPriceSchema = new mongoose.Schema({
 
 const AccountPrice = mongoose.models.AccountPrice || mongoose.model('AccountPrice', accountPriceSchema, 'account_prices');
 
+// --- REFILL PRICE SCHEMA ---
+// The admin's settings for one Bitrefill operator. Amounts without a fixed price sell at
+// Bitrefill's price + the global refill markup (see priceRefillPackage).
+const refillPriceSchema = new mongoose.Schema({
+    vendorProductId: { type: String, required: true, unique: true }, // Bitrefill product id, e.g. 't-mobile-usa'
+    productName: { type: String }, // Display only
+    hidden: { type: Boolean, default: false }, // Hidden operators are not listed or sold
+    markupPercentage: { type: Number, min: 0, max: 1000 }, // This operator's markup %, replaces the global one (unset = global)
+    packagePrices: [{
+        _id: false,
+        packageId: { type: String, required: true }, // Bitrefill package id, e.g. 't-mobile-usa<&>15'
+        fixedPriceNGN: { type: Number, min: 1 } // Fixed selling price (ignored below cost)
+    }],
+    updatedBy: { type: String } // Email of the admin who last saved it
+}, { timestamps: true });
+
+const RefillPrice = mongoose.models.RefillPrice || mongoose.model('RefillPrice', refillPriceSchema, 'refill_prices');
+
 // --- TRANSACTION SCHEMA ---
 const transactionSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -946,18 +1271,6 @@ purchaseAttemptSchema.index({ userId: 1, createdAt: -1 });
 
 const PurchaseAttempt = mongoose.models.PurchaseAttempt || mongoose.model('PurchaseAttempt', purchaseAttemptSchema, 'purchase_attempts');
 
-// --- TOP-UP INTENT SCHEMA ---
-// What initiate-topup asked Flutterwave to charge and what it will credit, keyed by tx_ref.
-// settleFlutterwaveTopup takes the user and both amounts from here, never from the payment's
-// meta: anyone holding the public key can open a Flutterwave checkout with any meta they like.
-const topupIntentSchema = new mongoose.Schema({
-    reference: { type: String, required: true, unique: true }, // The TOPUP-... tx_ref sent to Flutterwave
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    creditNGN: { type: Number, required: true }, // Lands in the wallet
-    chargeNGN: { type: Number, required: true } // The user must pay at least this (credit + top-up fee)
-}, { timestamps: true });
-
-const TopupIntent = mongoose.models.TopupIntent || mongoose.model('TopupIntent', topupIntentSchema, 'topup_intents');
 
 let isConnected = false;
 
@@ -1304,8 +1617,8 @@ const ADMIN_ACTIONS = new Set([
     'rdp-requests', 'rdp-request-complete', 'update-system-settings',
     'get-system-settings', 'system-settings', 'upload-receipt', 'wallet-check',
     'sms-pool-overrides', 'sms-price-overrides', 'sms-country-list', 'sms-operators', 'admin-sms-orders', 'admin-account-orders', 'admin-deposits', 'sms-stats', 'smsbower-balance',
-    'sameeha-balance', 'admin-account-products', 'account-prices', 'daily-stats', 'user-activity',
-    'admin-user-session', 'admin-wallet'
+    'sameeha-balance', 'bitrefill-balance', 'admin-account-products', 'account-prices', 'daily-stats', 'user-activity',
+    'admin-user-session', 'admin-wallet', 'admin-phone-refills', 'phone-refill-prices'
 ]);
 
 // Catalog actions: anyone may read, only admins may write
@@ -1382,10 +1695,9 @@ app.all(['/api/:action', '/:action'], async (req, res) => {
         case 'change-password': return handleChangePassword(req, res);
         case 'forgot-password': return handleForgotPasswordRequest(req, res);
         case 'reset-password': return handleResetPassword(req, res);
-        case 'initiate-topup': return handleInitiateTopup(req, res);
-        case 'verify-topup': return handleVerifyTopup(req, res);
-        case 'flutterwave-webhook':
-            if (req.method === 'POST') return handleFlutterwaveWebhook(req, res);
+        case 'virtual-account': return handleGetVirtualAccount(req, res);
+        case 'neurapay-webhook':
+            if (req.method === 'POST') return handleNeurapayWebhook(req, res);
             break;
         case 'purchase-with-wallet': return handlePurchaseWithWallet(req, res);
         case 'recheck-sms': return handleRecheckSms(req, res);
@@ -1476,6 +1788,9 @@ app.all(['/api/:action', '/:action'], async (req, res) => {
         case 'sameeha-balance':
             if (req.method === 'GET') return handleGetSameehaBalance(req, res);
             break;
+        case 'bitrefill-balance':
+            if (req.method === 'GET') return handleGetBitrefillBalance(req, res);
+            break;
         case 'account-products':
             if (req.method === 'GET') return handleGetAccountProducts(req, res);
             break;
@@ -1485,6 +1800,19 @@ app.all(['/api/:action', '/:action'], async (req, res) => {
         case 'account-prices':
             if (req.method === 'POST') return handleSaveAccountPrice(req, res);
             if (req.method === 'DELETE') return handleDeleteAccountPrice(req, res);
+            break;
+        case 'phone-refill-products':
+            if (req.method === 'GET') return handleGetPhoneRefillProducts(req, res);
+            break;
+        case 'phone-refill-lookup':
+            if (req.method === 'GET') return handleLookupRefillNumber(req, res);
+            break;
+        case 'admin-phone-refills':
+            if (req.method === 'GET') return handleGetAdminPhoneRefills(req, res);
+            break;
+        case 'phone-refill-prices':
+            if (req.method === 'POST') return handleSaveRefillPrice(req, res);
+            if (req.method === 'DELETE') return handleDeleteRefillPrice(req, res);
             break;
         case 'service-image':
             if (req.method === 'GET') return handleProxyServiceImage(req, res);
@@ -2088,7 +2416,7 @@ async function handleGetAdminWallet(req, res) {
 
 // --- ADMIN WALLET CREDIT ---
 // Lets an admin manually top up a user's main wallet (e.g. a bank transfer
-// confirmed outside Flutterwave). Logged as a 'deposit' so it shows in the
+// confirmed outside NeuraPay). Logged as a 'deposit' so it shows in the
 // user's top-up history, tagged with paymentMethod 'admin_credit'.
 // direction 'debit' takes money back out of the main wallet (purpose 'admin_debit', so it never
 // counts as a deposit or a purchase, while Wallet Check still balances).
@@ -2814,147 +3142,151 @@ async function handleGetUserProfile(req, res) {
     }
 }
 
-// --- 1. Initiate Topup (NGN Only) ---
-const TOPUP_MIN_NGN = 100;
-const TOPUP_MAX_NGN = 5000000;
-
-async function handleInitiateTopup(req, res) {
-    const { amountNGN } = req.body; // Amount the user wants credited to their wallet
-
-    const creditNGN = Math.round(Number(amountNGN));
-    if (!Number.isFinite(creditNGN) || creditNGN < TOPUP_MIN_NGN || creditNGN > TOPUP_MAX_NGN) {
-        return res.status(400).json({ success: false, message: `Enter an amount between ₦${TOPUP_MIN_NGN.toLocaleString()} and ₦${TOPUP_MAX_NGN.toLocaleString()}.` });
-    }
-
+// --- 1. Top-Up Account (NeuraPay virtual account) ---
+// Returns the user's own Paga account, creating it on first use. Any transfer into it
+// is credited by the NeuraPay webhook (less the top-up fee in globalMarkup).
+async function handleGetVirtualAccount(req, res) {
     try {
-        const user = await requireUser(req, res);
+        const user = await requireUser(req, res, 'fullName email status isVerified virtualAccount');
         if (!user) return;
+        if (!user.isVerified) {
+            return res.status(403).json({ success: false, message: "Please verify your account before making a deposit.", isUnverified: true, email: user.email });
+        }
 
-        // Final charge = wallet credit + globalMarkup (the markup is kept as the fee)
         const settings = await getSystemSettingsCached();
-        const MARKUP = Math.max(Number(settings?.globalMarkup || 0), 0);
-        const finalAmountNGN = Math.round(creditNGN + MARKUP);
+        const topupFeeNGN = Math.max(Number(settings?.globalMarkup || 0), 0);
 
-        const tx_ref = `TOPUP-${Date.now()}-${user._id.toString().slice(-4)}`;
+        // 1. Already Has One
+        if (user.virtualAccount?.accountNumber) {
+            return res.json({ success: true, account: shapeVirtualAccount(user.virtualAccount), topupFeeNGN });
+        }
 
-        // Record what this top-up charges and credits before the user can pay (see TopupIntent)
-        await TopupIntent.create({ reference: tx_ref, userId: user._id, creditNGN, chargeNGN: finalAmountNGN });
+        // 2. Ask NeuraPay For A New Paga Account (one reference per user, so a retry can't make two)
+        const reference = `VA-${user._id}`;
+        let account;
+        if (isNeurapayDemoMode()) {
+            account = {
+                account_number: `99${String(parseInt(user._id.toString().slice(-8), 16) % 1e8).padStart(8, '0')}`,
+                account_name: `${user.fullName} (Neurapay)`,
+                bank_name: 'Paga (Demo)'
+            };
+        } else {
+            if (!process.env.NEURAPAY_SECRET_KEY || !process.env.NEURAPAY_BUSINESS_ID) {
+                console.error("⚠️ NeuraPay keys are not set (NEURAPAY_SECRET_KEY, NEURAPAY_BUSINESS_ID)");
+                return res.status(503).json({ success: false, message: "Bank transfer top-ups are not available right now." });
+            }
+            const { data } = await neurapayClient.post('/virtual-accounts', {
+                customer_name: user.fullName,
+                customer_email: user.email,
+                provider_channel: 'Paga', // PalmPay needs the customer's BVN/NIN; Paga doesn't
+                reference
+            });
+            account = data?.data;
+        }
 
-        // Initiate Flutterwave Payment
-        const response = await fetch("https://api.flutterwave.com/v3/payments", {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                tx_ref,
-                amount: finalAmountNGN,
-                currency: "NGN",
-                redirect_url: `${APP_BASE_URL}/fund-wallet`,
-                customer: {
-                    email: user.email,
-                    name: user.fullName
-                },
-                meta: {
-                    userId: user._id.toString(),
-                    type: "WALLET_TOPUP",
-                    amountNGN: finalAmountNGN, // Kept for older verify logic
-                    chargeNGN: finalAmountNGN, // What the user must pay
-                    creditNGN // What lands in the wallet
-                },
-                customizations: {
-                    title: "DeemaxHub Wallet Topup",
-                    logo: `${APP_BASE_URL}/assets/logo.png`
-                }
-            }),
-        });
+        if (!account?.account_number) {
+            throw new Error(`NeuraPay returned no account number for ${reference}`);
+        }
 
-        const data = await response.json();
-        if (data.status !== "success") throw new Error(data.message);
+        // 3. Save It (only if no other request saved one first)
+        const saved = await User.findOneAndUpdate(
+            { _id: user._id, 'virtualAccount.accountNumber': { $exists: false } },
+            { $set: { virtualAccount: {
+                accountNumber: String(account.account_number),
+                accountName: account.account_name || user.fullName,
+                bankName: account.bank_name || 'Paga',
+                reference
+            } } },
+            { returnDocument: 'after' }
+        );
+        const finalUser = saved || await User.findById(user._id).select('virtualAccount').lean();
 
-        return res.json({ success: true, link: data.data.link });
-
+        return res.json({ success: true, account: shapeVirtualAccount(finalUser.virtualAccount), topupFeeNGN });
     } catch (err) {
-        console.error("Topup Init Error:", err);
-        return res.status(500).json({ success: false, message: "Could not initiate payment" });
+        console.error("Virtual Account Error:", err.response?.data || err.message);
+        const vendorMessage = err.response?.data?.message;
+        return res.status(502).json({ success: false, message: vendorMessage ? `Could not create your account: ${vendorMessage}` : "Could not create your top-up account. Please try again." });
     }
 }
 
+function shapeVirtualAccount(va) {
+    return { accountNumber: va.accountNumber, accountName: va.accountName, bankName: va.bankName };
+}
+
 /**
- * Verifies a Flutterwave transaction and credits the wallet exactly once.
- * Shared by the redirect check (verify-topup) and the Flutterwave webhook.
+ * Looks a transfer up on NeuraPay (GET /transactions/{reference}).
+ * Demo references carry their own account number and amount.
+ */
+async function fetchNeurapayTransaction(reference) {
+    if (isNeurapayDemoMode() && reference.startsWith('DEMO-TXN-')) {
+        const [, , accountNumber, amount] = reference.split('-');
+        return {
+            reference, amount: Number(amount), fees: 0, net_amount: Number(amount),
+            type: 'inbound_transfer', status: 'successful', virtual_account: accountNumber,
+            bank_name: 'Paga (Demo)', sender: { name: 'Demo Sender', bank: 'Demo Bank' }
+        };
+    }
+    const { data } = await neurapayClient.get(`/transactions/${encodeURIComponent(reference)}`);
+    return data?.data || null;
+}
+
+/**
+ * Credits a NeuraPay transfer to the owner of the receiving account, exactly once.
+ * The amount and account come from NeuraPay's own record, never from the webhook body.
  * Returns { httpStatus, body }.
  */
-async function settleFlutterwaveTopup(transactionId) {
-    const response = await fetch(`https://api.flutterwave.com/v3/transactions/${encodeURIComponent(transactionId)}/verify`, {
-        method: "GET",
-        headers: {
-            Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-            "Content-Type": "application/json"
-        },
-    });
-
-    const flwData = await response.json();
-    if (!flwData || flwData.status !== "success" || !flwData.data) {
-        return { httpStatus: 400, body: { success: false, message: "Gateway verification failed" } };
+async function settleNeurapayTransfer(neurapayRef) {
+    const npTx = await fetchNeurapayTransaction(neurapayRef);
+    if (!npTx) {
+        return { httpStatus: 404, body: { success: false, message: "Transfer not found on NeuraPay." } };
     }
 
-    const flwStatus = flwData.data.status;
-    const txRef = String(flwData.data.tx_ref || '');
-    const flwAmountNGN = Number(flwData.data.amount);
-
-    // 1. Only Our Own NGN Wallet Top-Ups Are Accepted
-    if (!txRef.startsWith('TOPUP-') || flwData.data.currency !== 'NGN') {
-        return { httpStatus: 400, body: { success: false, message: "This payment is not a wallet top-up." } };
+    // 1. Only Successful Inbound Transfers Into One Of Our Users' Accounts
+    if (npTx.status !== 'successful' || npTx.type !== 'inbound_transfer') {
+        return { httpStatus: 200, body: { success: false, message: `Transfer ${npTx.status || 'not successful'}; nothing credited.` } };
     }
 
-    // ⚠️ CRITICAL: The user and the amounts come from the top-up initiate-topup recorded, never from
-    // the payment's meta (a checkout opened with our public key can carry any meta it likes)
-    const intent = await TopupIntent.findOne({ reference: txRef }).lean();
-    if (!intent) {
-        console.error(`⚠️ CRITICAL: Flutterwave payment ${transactionId} (${txRef}) has no top-up record. Not credited; check it in the Flutterwave dashboard.`);
-        return { httpStatus: 400, body: { success: false, message: "This payment wasn't started from your DeemaxHub wallet. Contact support." } };
+    const user = await User.findOne({ 'virtualAccount.accountNumber': String(npTx.virtual_account || '') }).select('_id email').lean();
+    if (!user) {
+        console.error(`⚠️ CRITICAL: NeuraPay transfer ${neurapayRef} went to account ${npTx.virtual_account}, which no user owns. Not credited; check it in the NeuraPay dashboard.`);
+        return { httpStatus: 200, body: { success: false, message: "No user owns this account." } };
     }
-    const userId = intent.userId;
 
+    const txRef = `NPAY-${neurapayRef}`;
     const existingTx = await Transaction.findOne({ reference: txRef }).lean();
     if (existingTx && existingTx.status === 'successful') {
-        return { httpStatus: 200, body: { success: true, newBalance: existingTx.balanceAfter, message: "Transaction already processed." } };
+        return { httpStatus: 200, body: { success: true, message: "Transaction already processed." } };
     }
 
-    // 2. Pending / Failed: Record The State (with the required fields) And Stop
-    if (flwStatus !== "successful") {
-        const finalStatus = flwStatus === "pending" ? "pending" : "failed";
-        await Transaction.findOneAndUpdate(
-            { reference: txRef, status: { $ne: 'successful' } },
-            { $set: {
-                userId, type: 'credit', purpose: 'deposit',
-                amountNGN: intent.creditNGN,
-                status: finalStatus,
-                paymentMethod: flwData.data.payment_type || 'card',
-                metadata: flwData.data
-            } },
-            { upsert: true }
-        ).catch(err => {
-            if (err.code !== 11000) throw err; // A concurrent success already won
-        });
-        return { httpStatus: 200, body: { success: (finalStatus === 'pending'), status: finalStatus, message: `Transaction ${finalStatus}.` } };
-    }
+    // 2. Work Out The Credit (the transfer less the flat top-up fee)
+    const paidNGN = Number(npTx.amount);
+    const settings = await getSystemSettingsCached();
+    const feeNGN = Math.max(Number(settings?.globalMarkup || 0), 0);
+    const creditNGN = Math.round(paidNGN - feeNGN);
+    const gatewayMeta = {
+        neurapayReference: npTx.reference,
+        providerReference: npTx.provider_reference,
+        virtualAccount: npTx.virtual_account,
+        bankName: npTx.bank_name,
+        sender: npTx.sender,
+        chargedNGN: paidNGN, // What the customer transferred
+        feeNGN: Math.min(feeNGN, paidNGN),
+        gatewayFeesNGN: Number(npTx.fees) || 0 // NeuraPay's own fee, taken from our settlement
+    };
 
-    // 3. Check The Amount Paid Covers The Charge We Created
-    const chargeNGN = Number(intent.chargeNGN);
-    if (!Number.isFinite(flwAmountNGN) || flwAmountNGN + 0.01 < chargeNGN) {
-        console.error(`⚠️ Top-up ${txRef} underpaid: paid ₦${flwAmountNGN}, expected ₦${chargeNGN}`);
-        return { httpStatus: 400, body: { success: false, message: "Amount paid does not match the top-up. Contact support." } };
+    if (!Number.isFinite(paidNGN) || creditNGN <= 0) {
+        console.error(`⚠️ NeuraPay transfer ${neurapayRef} of ₦${paidNGN} doesn't cover the ₦${feeNGN} top-up fee. Not credited.`);
+        await Transaction.create({
+            userId: user._id, type: 'credit', purpose: 'deposit', amountNGN: 0,
+            reference: txRef, status: 'failed', paymentMethod: 'bank_transfer',
+            metadata: { ...gatewayMeta, note: "Transfer smaller than the top-up fee" }
+        }).catch(err => { if (err.code !== 11000) throw err; });
+        return { httpStatus: 200, body: { success: false, message: "Transfer smaller than the top-up fee." } };
     }
-
-    // Credit the requested amount and keep the markup (the top-up fee)
-    const creditNGN = Math.round(Number(intent.creditNGN));
 
     const { minDepositNGN } = await getReferralSettings();
 
-    // 4. Credit Wallet And Write The Record In One Transaction
+    // 3. Credit Wallet And Write The Record In One Transaction
     // The unique reference index makes a second concurrent credit fail and roll back.
     let referralQualified = false;
     const session = await mongoose.startSession();
@@ -2962,7 +3294,7 @@ async function settleFlutterwaveTopup(transactionId) {
         session.startTransaction();
 
         const updatedUser = await User.findOneAndUpdate(
-            { _id: userId },
+            { _id: user._id },
             { $inc: { balance: creditNGN }, $set: { hasDeposited: true } },
             { returnDocument: 'after', session }
         );
@@ -2979,17 +3311,17 @@ async function settleFlutterwaveTopup(transactionId) {
                 purpose: 'deposit',
                 amountNGN: creditNGN,
                 status: 'successful',
-                paymentMethod: flwData.data.payment_type || 'card',
+                paymentMethod: 'bank_transfer',
                 balanceBefore,
                 balanceAfter,
                 bonusBefore: updatedUser.bonusBalance || 0,
                 bonusAfter: updatedUser.bonusBalance || 0,
-                metadata: { ...flwData.data, chargedNGN: flwAmountNGN, feeNGN: Math.max(flwAmountNGN - creditNGN, 0) }
+                metadata: gatewayMeta
             } },
             { upsert: true, session }
         );
 
-        // 5. A Big Enough Top-Up Qualifies A Pending Referral (committed with the deposit)
+        // 4. A Big Enough Top-Up Qualifies A Pending Referral (committed with the deposit)
         if (updatedUser.referralStatus === 'pending' && creditNGN >= minDepositNGN) {
             const qualified = await User.updateOne(
                 { _id: updatedUser._id, referralStatus: 'pending' },
@@ -3000,9 +3332,9 @@ async function settleFlutterwaveTopup(transactionId) {
         }
 
         await session.commitTransaction();
-        console.log(`✅ Top-up ${txRef}: ₦${creditNGN} credited to ${updatedUser.email}`);
+        console.log(`✅ NeuraPay top-up ${txRef}: ₦${creditNGN} credited to ${updatedUser.email}`);
 
-        // 6. Count The Referral (a failure here is retried on the next profile load)
+        // 5. Count The Referral (a failure here is retried on the next profile load)
         if (referralQualified) {
             await creditReferrer(updatedUser._id).catch(err => console.error("Referral Credit Error:", err));
         }
@@ -3011,8 +3343,7 @@ async function settleFlutterwaveTopup(transactionId) {
     } catch (err) {
         await session.abortTransaction().catch(() => {});
         if (err.code === 11000 || err.codeName === 'WriteConflict') {
-            const settled = await Transaction.findOne({ reference: txRef }).lean();
-            return { httpStatus: 200, body: { success: true, newBalance: settled?.balanceAfter, message: "Transaction already processed." } };
+            return { httpStatus: 200, body: { success: true, message: "Transaction already processed." } };
         }
         throw err;
     } finally {
@@ -3020,61 +3351,42 @@ async function settleFlutterwaveTopup(transactionId) {
     }
 }
 
-// --- Verify Topup (called by the Fund Wallet page after the Flutterwave redirect) ---
-async function handleVerifyTopup(req, res) {
-    const { transactionId } = req.body;
+// --- NeuraPay Webhook (payment.successful for every transfer into a user's account) ---
+// Set the URL /api/neurapay-webhook in NeuraPay Console > Developer Api, and copy its
+// Webhook Signing Secret into NEURAPAY_WEBHOOK_SECRET.
+async function handleNeurapayWebhook(req, res) {
+    const signingSecret = process.env.NEURAPAY_WEBHOOK_SECRET;
+    const receivedSignature = String(req.headers['x-neurapay-signature'] || '');
 
-    if (!transactionId || !/^\d+$/.test(String(transactionId))) {
-        return res.status(400).json({ success: false, message: "Transaction ID is required" });
-    }
-
-    try {
-        const result = await settleFlutterwaveTopup(String(transactionId));
-        return res.status(result.httpStatus).json(result.body);
-    } catch (err) {
-        console.error("VERIFICATION ERROR:", err.message);
-        return res.status(500).json({ success: false, message: "Could not verify payment. If you were charged, contact support." });
-    }
-}
-
-// --- Flutterwave Webhook (credits payments even if the user closed the tab) ---
-// Set the same secret hash in Flutterwave Dashboard > Settings > Webhooks and in FLW_WEBHOOK_HASH.
-async function handleFlutterwaveWebhook(req, res) {
-    const expectedHash = process.env.FLW_WEBHOOK_HASH;
-    const receivedHash = String(req.headers['verif-hash'] || '');
-
-    if (!expectedHash || receivedHash.length !== expectedHash.length ||
-        !crypto.timingSafeEqual(Buffer.from(receivedHash), Buffer.from(expectedHash))) {
+    // 1. Check The HMAC-SHA256 Signature Of The Raw Body
+    if (!signingSecret || !req.rawBody) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
     }
+    const expectedSignature = crypto.createHmac('sha256', signingSecret).update(req.rawBody).digest('hex');
+    if (receivedSignature.length !== expectedSignature.length ||
+        !crypto.timingSafeEqual(Buffer.from(receivedSignature), Buffer.from(expectedSignature))) {
+        return res.status(401).json({ success: false, message: "Invalid signature" });
+    }
 
-    const transactionId = req.body?.data?.id;
-    if (!transactionId) return res.status(200).json({ success: true, message: "Ignored" });
+    const neurapayRef = req.body?.data?.reference;
+    if (req.body?.event !== 'payment.successful' || typeof neurapayRef !== 'string' || !neurapayRef) {
+        return res.status(200).json({ success: true, message: "Ignored" });
+    }
 
     try {
-        // Never trust the webhook body itself: re-verify with Flutterwave's API
-        const result = await settleFlutterwaveTopup(String(transactionId));
+        // 2. Re-check The Transfer With NeuraPay Before Crediting
+        const result = await settleNeurapayTransfer(neurapayRef);
         return res.status(200).json({ success: result.body.success, message: result.body.message });
     } catch (err) {
-        console.error("Flutterwave Webhook Error:", err.message);
-        return res.status(500).json({ success: false, message: "Webhook processing failed" }); // Flutterwave retries
+        console.error("NeuraPay Webhook Error:", err.response?.data || err.message);
+        return res.status(500).json({ success: false, message: "Webhook processing failed" }); // NeuraPay retries
     }
 }
 
 // --- SERVER-SIDE PRICE CATALOGS ---
 // Prices are only ever read from here, never from the request body.
-// Keep these in step with the carrier lists in smsuser/esim-refill.html and esim-activation.html.
-const ESIM_REFILL_PLANS = {
-    tmobile: { name: 'T-Mobile $15 (Prepaid)', price: 28000 },
-    tmobile_3months: { name: 'T-Mobile 3 Months Carrier eSIM', price: 65000 },
-    tmobile_6months: { name: 'T-Mobile 6 Months Carrier eSIM', price: 115000 },
-    att: { name: 'AT&T $35 (Prepaid)', price: 58000 },
-    att_3months: { name: 'AT&T 3 Months Carrier eSIM', price: 95000 },
-    att_6months: { name: 'AT&T 6 Months Carrier eSIM', price: 165000 },
-    '1month': { name: 'One Month Carrier eSIM', price: 41000 },
-    '3months': { name: '3 Months Carrier eSIM', price: 63000 }
-};
-
+// Keep this in step with the carrier list in smsuser/esim-activation.html.
+// eSIM refills are Bitrefill phone top-ups, priced live (see priceRefillPackage).
 const ESIM_ACTIVATION_PLANS = {
     tmobile: { name: 'T-Mobile (Prepaid)', price: 45000, label: 'One Month' },
     tmobile_3months: { name: 'T-Mobile 3 Months (Prepaid)', price: 120000, label: '3 Months' },
@@ -3113,13 +3425,54 @@ function cleanText(value, maxLength = 200) {
     return text || null;
 }
 
+// A US number in E.164 (+1 and 10 digits), or null. Accepts spaces, dashes, brackets and a leading 1.
+function normalizeUsPhoneNumber(value) {
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    let digits = String(value).replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+    return /^[2-9]\d{2}[2-9]\d{6}$/.test(digits) ? `+1${digits}` : null;
+}
+
+// The code a PIN product delivers ("other" is Bitrefill's text: PIN, serial and how to load it)
+function readRefillPin(invoice) {
+    const info = invoice?.orders?.[0]?.redemption_info || {};
+    const pin = String(info.code || info.extra_fields?.pin || info.pin || '').trim().slice(0, 200);
+    const details = String(info.other || '').trim().slice(0, 1000);
+    return pin || details ? { pin: pin || details, details } : null;
+}
+
+// The line shown under a top-up or PIN order
+function refillInstructions(isPin, isDelivered) {
+    if (isPin) {
+        return isDelivered
+            ? "Load this PIN on your phone as your operator explains (dial code, app or website)."
+            : "Your PIN is on its way. It usually arrives within a few minutes.";
+    }
+    return isDelivered
+        ? "Your top-up has been sent to the number above."
+        : "Your top-up is on its way. It usually lands within a few minutes.";
+}
+
+// Reads a Bitrefill invoice: 'delivered', 'failed', 'unpaid' (auto-pay didn't run) or 'pending'
+function readRefillInvoice(invoice) {
+    const invoiceStatus = String(invoice?.status || '').toLowerCase();
+    const orderStatuses = (Array.isArray(invoice?.orders) ? invoice.orders : []).map(o => String(o?.status || '').toLowerCase());
+    if (orderStatuses.includes('delivered')) return 'delivered';
+    if (orderStatuses.length > 0 && orderStatuses.every(s => ['failed', 'refunded'].includes(s))) return 'failed';
+    if (['denied', 'payment_error', 'blocked'].includes(invoiceStatus)) return 'failed';
+    if (invoiceStatus === 'complete') return 'delivered';
+    if (invoiceStatus === 'unpaid') return 'unpaid';
+    return 'pending';
+}
+
 async function handlePurchaseWithWallet(req, res) {
     // 1. DESTRUCTURING (All body variables defined here)
     const {
         vpnId, proxyId, rdpId,
         accountProductId, quantity,
+        refillProductId, refillPackageId,
         carrierName, carrierId, productImage,
-        coverageCountry, mobileNumber,
+        mobileNumber,
         planIndex,
         metadata, useBonus
     } = req.body;
@@ -3143,6 +3496,7 @@ async function handlePurchaseWithWallet(req, res) {
         let isOnlineSimFlow = false; // Flag to execute downstream vendor calls safely
         let smsQuote = null; // Server-side SMS price and provider details
         let accountQuote = null; // Server-side Sameeha product, price and quantity
+        let refillQuote = null; // Server-side Bitrefill operator, amount and phone number
         const targetServiceCode = cleanText(meta.serviceCode || req.body.serviceCode, 40);
         const planIdx = Number.isInteger(Number(planIndex)) ? Number(planIndex) : -1;
 
@@ -3154,7 +3508,8 @@ async function handlePurchaseWithWallet(req, res) {
                 ...(vpnId ? [{ productType: "VPN" }] : []),
                 ...(proxyId ? [{ productType: "Proxy" }] : []),
                 ...(rdpId ? [{ productType: "RDP" }] : []),
-                ...(accountProductId !== undefined ? [{ productType: "Account" }] : [])
+                ...(accountProductId !== undefined ? [{ productType: "Account" }] : []),
+                ...(refillProductId !== undefined ? [{ productType: "eSIM_Refill" }] : [])
             ]
         });
 
@@ -3386,24 +3741,57 @@ async function handlePurchaseWithWallet(req, res) {
                 instructions: "Payment Confirmed. DeemaxHub is verifying your activation details."
             };
         }
-        else if (carrierName && mobileNumber) {
+        else if (refillProductId !== undefined) {
             itemType = "eSIM_Refill";
-            const plan = findCatalogPlan(ESIM_REFILL_PLANS, carrierId, carrierName);
-            const targetNumber = cleanText(mobileNumber, 40);
-            const country = cleanText(coverageCountry, 80) || 'Global';
-            if (!plan) return res.status(400).json({ success: false, message: "Select a valid eSIM carrier." });
-            if (!targetNumber) return res.status(400).json({ success: false, message: "eSIM mobile number is required." });
+            attempt.productType = itemType;
+            const productId = cleanText(refillProductId, 120);
+            const packageId = cleanText(refillPackageId, 160);
+            if (!productId || !packageId) {
+                return res.status(400).json({ success: false, message: "Select an operator and amount." });
+            }
 
-            costNGN = plan.price;
-            productDetails.name = plan.name;
-            productDetails.plan = `₦${costNGN.toLocaleString()}`;
-            orderSpecifics = {
-                carrier: { id: plan.id, name: plan.name, image: cleanText(productImage, 300) },
-                target: { number: targetNumber, country },
-                targetNumber,
-                country,
-                instructions: "Payment Confirmed. Your refill is being processed by the technical team."
-            };
+            // 1. Reload The Operator For A Live Price (Bitrefill prices move with fees)
+            let product = null;
+            try {
+                const live = await bitrefillRequest('get', `/products/${encodeURIComponent(productId)}`);
+                if (live.status === 200 && (live.data?.data || live.data)?.id) {
+                    [product] = await priceRefillProducts([normalizeRefillProduct(live.data.data || live.data)]);
+                } else if (live.status !== 404) {
+                    throw new Error(`Bitrefill /products/${productId} replied ${live.status}: ${live.data?.message || ''}`);
+                }
+            } catch (err) {
+                console.error("Refill Price Lookup Error:", err.message);
+                return res.status(502).json({ success: false, message: "Could not reach the top-up provider. Please try again shortly." });
+            }
+
+            if (!product || product.hidden || !PHONE_REFILL_COUNTRIES.includes(product.countryCode)) {
+                attempt.reason = 'unavailable';
+                return res.status(404).json({ success: false, message: "This operator is no longer available. Refresh the page." });
+            }
+            attempt.label = product.name;
+            const pkg = product.packages.find(p => p.id === packageId);
+            if (!pkg) {
+                attempt.reason = 'unavailable';
+                return res.status(404).json({ success: false, message: "That amount is no longer available. Refresh the page." });
+            }
+            if (!product.inStock) {
+                attempt.reason = 'out_of_stock';
+                return res.status(404).json({ success: false, message: `${product.name} top-ups are unavailable right now.` });
+            }
+
+            // 2. Direct Top-ups Need The Number; PINs Are Delivered As A Code Instead
+            const phoneNumber = product.delivery === 'topup' ? normalizeUsPhoneNumber(mobileNumber) : null;
+            if (product.delivery === 'topup' && !phoneNumber) {
+                attempt.reason = 'invalid_input';
+                return res.status(400).json({ success: false, message: "Enter a valid 10-digit US phone number." });
+            }
+
+            // 3. Price Comes From The Server (admin fixed price or Bitrefill price × rate + markup)
+            costNGN = pkg.priceNGN;
+            refillQuote = { product, pkg, phoneNumber };
+            productDetails.name = product.name;
+            productDetails.plan = pkg.label === pkg.value ? pkg.label
+                : `${pkg.label} ${product.delivery === 'pin' ? 'PIN' : 'Top-up'}`; // "$15 Top-up", "$15 PIN" or "2 GB 30 Days"
         }
 
         if (!itemType) {
@@ -3419,7 +3807,7 @@ async function handlePurchaseWithWallet(req, res) {
         // --- WALLET CALCULATIONS ---
         const mainBal = Number(user.balance || 0);
         const bonusBal = Number(user.bonusBalance || 0);
-        const isBonusUnlocked = user.hasDeposited === true; // Only the user's own Flutterwave top-up unlocks it (an admin credit doesn't)
+        const isBonusUnlocked = user.hasDeposited === true; // Only the user's own bank transfer top-up unlocks it (an admin credit doesn't)
         const canUseBonus = useBonus === true && isBonusUnlocked && bonusBal > 0;
         const buyingPower = canUseBonus ? (mainBal + bonusBal) : mainBal;
 
@@ -3576,6 +3964,161 @@ async function handlePurchaseWithWallet(req, res) {
                 bonusBalance: updatedUser.bonusBalance,
                 order: toUserOrder(createdOrder),
                 keys
+            });
+        }
+
+        // --- BITREFILL PHONE TOP-UP & ORDER RECORDING ---
+        // Same shape as Sameeha: debit first, buy, refund on any failure. A top-up Bitrefill hasn't
+        // finished yet is saved as pending and settled later by syncPendingRefills().
+        if (itemType === "eSIM_Refill" && refillQuote) {
+            const { product, pkg, phoneNumber } = refillQuote;
+
+            // ONE TOP-UP AT A TIME PER USER: the 1.5 s duplicate guard can't see an order still waiting
+            // on Bitrefill, so two taps at once would pay for two top-ups. The lock outlives the
+            // Bitrefill call and is released as soon as the reply is sent.
+            const lockUntil = new Date(Date.now() + REFILL_BUY_TIMEOUT_MS + 5000);
+            const locked = await User.findOneAndUpdate(
+                { _id: user._id, $or: [{ refillLockUntil: { $exists: false } }, { refillLockUntil: null }, { refillLockUntil: { $lt: new Date() } }] },
+                { $set: { refillLockUntil: lockUntil } }
+            );
+            if (!locked) {
+                attempt.reason = 'duplicate';
+                return res.status(429).json({ success: false, message: "Your last top-up is still processing. Please wait a moment." });
+            }
+            res.on('finish', () => {
+                User.updateOne({ _id: user._id, refillLockUntil: lockUntil }, { $unset: { refillLockUntil: '' } })
+                    .catch(err => console.error("Refill Lock Release Error:", err.message));
+            });
+
+            const updatedUser = await User.findOneAndUpdate(debitFilter, debitUpdate, { returnDocument: 'after' });
+            if (!updatedUser) {
+                attempt.reason = 'insufficient_balance';
+                return res.status(400).json({ success: false, message: "Transaction failed. Please check your balance and try again." });
+            }
+
+            const refundWallet = () => User.findByIdAndUpdate(user._id, {
+                $inc: { balance: mainDeduction, bonusBalance: bonusDeduction }
+            }).catch(err => console.error(`⚠️ CRITICAL: Refund failed for ${user.email} (₦${costNGN}):`, err.message));
+
+            // 1. Create And Pay The Invoice From Our Bitrefill Balance (wallet already debited)
+            let vendorReply;
+            try {
+                vendorReply = await bitrefillRequest('post', '/invoices', {
+                    body: {
+                        products: [{ product_id: product.id, package_id: pkg.id, ...(phoneNumber ? { phone_number: phoneNumber } : {}), quantity: 1 }],
+                        payment_method: 'balance',
+                        auto_pay: true
+                    },
+                    timeout: REFILL_BUY_TIMEOUT_MS
+                });
+            } catch (apiErr) {
+                // No reply at all: Bitrefill may still have sent it, so leave a trail to check its order history
+                console.error(`⚠️ CRITICAL: Bitrefill /invoices gave no reply for ${user.email} (${paymentReference}, ${pkg.id} to ${phoneNumber || 'PIN'}). Refunded the user; check Bitrefill order history.`, apiErr.message);
+                await refundWallet();
+                return res.status(502).json({ success: false, message: "The top-up provider did not respond. You have not been charged. Please try again." });
+            }
+
+            const invoice = vendorReply.data?.data || vendorReply.data || {};
+            const outcome = (vendorReply.status === 200 || vendorReply.status === 201) && invoice.id ? readRefillInvoice(invoice) : 'rejected';
+            if (outcome === 'rejected' || outcome === 'failed' || outcome === 'unpaid') {
+                console.error("Bitrefill Top-up Rejected:", vendorReply.status, outcome, JSON.stringify(vendorReply.data).slice(0, 500));
+                await refundWallet();
+                const errorCode = String(vendorReply.data?.error_code || vendorReply.data?.error?.code || '').toLowerCase();
+                const VENDOR_ERROR_MESSAGES = {
+                    invalid_phone_number: "That phone number isn't valid. Check it and try again.",
+                    unsupported_operator: `That number isn't on ${product.name}. Check the operator and try again.`
+                };
+                attempt.reason = outcome === 'unpaid' || /balance|fund/.test(errorCode) ? 'provider_out_of_funds'
+                    : (VENDOR_ERROR_MESSAGES[errorCode] ? 'invalid_input' : 'provider_error');
+                const message = VENDOR_ERROR_MESSAGES[errorCode]
+                    || (attempt.reason === 'provider_out_of_funds' ? "Top-ups are temporarily unavailable. Please try again later." : "The operator rejected this top-up.");
+                return res.status(502).json({ success: false, message: `${message} You have not been charged.` });
+            }
+
+            // A PIN counts as delivered only once its code is in hand; otherwise syncPendingRefills() fetches it
+            const isPin = product.delivery === 'pin';
+            const pinCode = isPin ? readRefillPin(invoice) : null;
+            const isDelivered = outcome === 'delivered' && (!isPin || Boolean(pinCode));
+            const vendorOrderId = String(invoice.orders?.[0]?.id || '');
+            const vendorCostUsd = invoice.payment?.currency === 'USD' && Number(invoice.payment?.price) > 0 ? Number(invoice.payment.price) : pkg.priceUsd;
+            const country = product.countryName || 'United States';
+
+            // 2. Record The Sale (order and wallet log together)
+            let createdOrder;
+            try {
+                await runTransactionWithRetry(async (session) => {
+                    createdOrder = await new Order({
+                        userId: user._id,
+                        userEmail: user.email,
+                        fullName: user.fullName || "Customer",
+                        productType: 'eSIM_Refill',
+                        vendorOrderId: String(invoice.id),
+                        planName: productDetails.plan,
+                        nodeName: productDetails.name,
+                        amount: costNGN,
+                        currency: 'NGN',
+                        mainBalanceUsed: mainDeduction,
+                        bonusBalanceUsed: bonusDeduction,
+                        status: isDelivered ? 'completed' : 'pending',
+                        paymentReference,
+                        ...(phoneNumber ? { targetNumber: phoneNumber } : {}),
+                        country,
+                        target: { number: phoneNumber || '', country },
+                        carrier: { id: product.id, name: product.name, image: product.image },
+                        ...(isDelivered ? { confirmationNumber: vendorOrderId || String(invoice.id) } : {}),
+                        ...(pinCode ? { activationCode: pinCode.pin } : {}),
+                        instructions: refillInstructions(isPin, isDelivered),
+                        metadata: {
+                            vendor: 'bitrefill',
+                            delivery: product.delivery, // 'topup' or 'pin'
+                            ...(pinCode?.details ? { pinDetails: pinCode.details } : {}),
+                            isManualProcess: false,
+                            vendorProductId: product.id,
+                            packageId: pkg.id,
+                            packageValue: pkg.value,
+                            faceCurrency: product.currency,
+                            vendorInvoiceId: String(invoice.id),
+                            vendorOrderId: vendorOrderId || null,
+                            pricing: pkg.pricing, // { level, type, value } of the price rule used
+                            vendorCostUsd,
+                            vendorCostNGN: refillCostNGN(vendorCostUsd, await getUsdToNgnRate())
+                        },
+                        ...(isDelivered ? { deliveredAt: new Date() } : {})
+                    }).save({ session });
+
+                    // TRANSACTION LOG
+                    await new Transaction({
+                        userId: user._id,
+                        type: 'debit',
+                        purpose: 'purchase',
+                        amountNGN: costNGN,
+                        status: 'successful',
+                        reference: paymentReference,
+                        paymentMethod: 'wallet_combined',
+                        balanceBefore: updatedUser.balance + mainDeduction,
+                        balanceAfter: updatedUser.balance,
+                        bonusBefore: updatedUser.bonusBalance + bonusDeduction,
+                        bonusAfter: updatedUser.bonusBalance,
+                        metadata: { orderId: createdOrder._id, product: productDetails.name, usedBonus: bonusDeduction > 0 }
+                    }).save({ session });
+                });
+            } catch (recordErr) {
+                // The top-up is already paid at Bitrefill; the admin can match it from Bitrefill's order history
+                console.error(`⚠️ CRITICAL: Refill Order Record Error (Bitrefill invoice ${invoice.id}, ${user.email}). Refunded the user.`, recordErr);
+                await refundWallet();
+                attempt.reason = 'order_write_failed';
+                return res.status(500).json({ success: false, message: "Could not record your order. You have not been charged." });
+            }
+
+            if (isDelivered) sendRefillDeliveredEmail(createdOrder);
+
+            return res.json({
+                success: true,
+                message: isPin ? (isDelivered ? "PIN delivered!" : "PIN ordered. It usually arrives within a few minutes.")
+                    : (isDelivered ? "Top-up sent!" : "Top-up submitted. It usually lands within a few minutes."),
+                balance: updatedUser.balance,
+                bonusBalance: updatedUser.bonusBalance,
+                order: toUserOrder(createdOrder)
             });
         }
 
@@ -3843,7 +4386,7 @@ async function handlePurchaseWithWallet(req, res) {
                 mainBalanceUsed: mainDeduction,
                 bonusBalanceUsed: bonusDeduction,
                 currency: "NGN",
-                status: itemType === "eSIM_Refill" ? "pending" : "successful", // Same statuses the admin pages already expect
+                status: "successful", // Same statuses the admin pages already expect
                 paymentReference: paymentReference,
                 targetNumber,
                 country: targetCountry,
@@ -3851,7 +4394,7 @@ async function handlePurchaseWithWallet(req, res) {
                 ...orderSpecifics,
                 metadata: {
                     ...orderMetadata,
-                    isManualProcess: (itemType === "eSIM_Refill" || itemType === "eSIM_Activation" || itemType === "RDP")
+                    isManualProcess: (itemType === "eSIM_Activation" || itemType === "RDP")
                 }
             }).save({ session });
 
@@ -3883,7 +4426,7 @@ async function handlePurchaseWithWallet(req, res) {
             session.endSession();
         }
 
-        const manualProducts = ["eSIM_Refill", "eSIM_Activation", "RDP"];
+        const manualProducts = ["eSIM_Activation", "RDP"];
         const isManual = manualProducts.includes(itemType);
 
         if (!isManual) {
@@ -4177,6 +4720,10 @@ const isAccount = type === "Account";
         subject = "🔑 Your Account Details";
         headerTitle = "Order Delivered!";
         subHeader = "Your purchased account details are below. Keep them safe.";
+    } else if (isESIM_Refill && credentials.activationCode) {
+        subject = `🔑 Your ${credentials.nodeName || 'Phone'} PIN`;
+        headerTitle = "PIN Delivered!";
+        subHeader = "Load this PIN on your phone to add the credit. Keep it private.";
     } else if (isESIM_Refill) {
         subject = "✅ eSIM Refill Confirmed";
         headerTitle = "Refill Successful!";
@@ -4499,7 +5046,20 @@ else if (isVPN) {
     const rawAmount = String(credentials.amount || 0).replace(/[^0-9.-]+/g, "");
     const displayAmount = Number(rawAmount) || 0;
     const displayCountry = credentials.country || (credentials.target && credentials.target.country) || 'N/A';
-    const displayTarget = credentials.targetNumber || (credentials.target && credentials.target.number) || 'N/A';
+    const displayTarget = credentials.targetNumber || (credentials.target && credentials.target.number) || credentials.planName || 'N/A';
+    const pinCode = credentials.activationCode; // Set only for PIN products
+
+    // PIN Products: the code (and Bitrefill's loading text) leads the email
+    const pinBlock = pinCode ? `
+        <tr>
+            <td colspan="2" style="padding-bottom: 15px; text-align: center;">
+                <div style="background: #FFF8EB; border: 1px dashed #F9861E; padding: 15px; border-radius: 8px;">
+                    <span style="font-size: 9px; color: #B54708; text-transform: uppercase; font-weight: bold;">Your PIN</span><br>
+                    <strong style="font-size: 22px; font-family: 'Courier New', monospace; color: #101828; letter-spacing: 2px; word-break: break-all;">${pinCode}</strong>
+                    ${credentials.pinDetails ? `<div style="margin-top: 10px; font-size: 11px; color: #344054; white-space: pre-line; text-align: left;">${credentials.pinDetails}</div>` : ''}
+                </div>
+            </td>
+        </tr>` : '';
 
     // Conditional Receipt Button
     let receiptBtn = '';
@@ -4513,14 +5073,14 @@ else if (isVPN) {
             </div>`;
     }
 
-    dataTableHtml = `
+    dataTableHtml = `${pinBlock}
         <tr>
             <td class="mobile-full" width="50%" valign="top" style="padding-bottom: 15px;">
                 <span style="font-size: 9px; color: #667085; text-transform: uppercase; font-weight: bold;">Carrier</span><br>
                 <strong style="font-size: 13px; color: #0F54C6;">${credentials.nodeName || 'eSIM Carrier'}</strong>
             </td>
             <td class="mobile-full" width="50%" valign="top" style="text-align: right; padding-bottom: 15px;">
-                <span style="font-size: 9px; color: #667085; text-transform: uppercase; font-weight: bold;">Target Number</span><br>
+                <span style="font-size: 9px; color: #667085; text-transform: uppercase; font-weight: bold;">${pinCode ? 'Amount' : 'Target Number'}</span><br>
                 <strong style="font-size: 13px; font-family: 'Courier New', monospace; color: #101828;">${displayTarget}</strong>
             </td>
         </tr>
@@ -4957,6 +5517,9 @@ async function handleAllTransactions(req, res) {
 
 async function getEsimRefills(req, res) {
     try {
+        // Settle Bitrefill top-ups still pending before listing them
+        await syncPendingRefills({}, 10).catch(err => console.error("Admin Refill Sync Error:", err.message));
+
         const refills = await Order.find({ productType: 'eSIM_Refill' })
             .sort({ createdAt: -1 })
             .limit(100);
@@ -4972,7 +5535,13 @@ async function getEsimRefills(req, res) {
             targetNumber: refill.targetNumber || (refill.target?.number) || 'N/A',
             country: refill.country || (refill.target?.country) || 'N/A',
             carrier: refill.nodeName || (refill.carrier?.name) || 'Global eSIM',
-            confirmationNumber: refill.confirmationNumber || 'PENDING'
+            planName: refill.planName || null,
+            confirmationNumber: refill.confirmationNumber || 'PENDING',
+            vendor: refill.metadata?.vendor || 'manual', // 'bitrefill' top-ups complete themselves
+            vendorInvoiceId: refill.metadata?.vendorInvoiceId || null,
+            vendorCostNGN: refill.metadata?.vendorCostNGN ?? null,
+            refundedAt: refill.refundedAt || null,
+            adminNote: refill.adminNote || null
         }));
 
         return res.json({ 
@@ -5038,9 +5607,9 @@ async function handleAdminEsimUpdate(req, res) {
             updateData.receiptUrl = receiptUrl; 
         }
 
-        // Search by paymentReference (a refunded order can't be completed)
+        // Search by paymentReference (a refunded order can't be completed, and Bitrefill top-ups complete themselves)
         const updatedOrder = await Order.findOneAndUpdate(
-            { paymentReference: tid, productType: 'eSIM_Refill', refundedAt: { $exists: false } },
+            { paymentReference: tid, productType: 'eSIM_Refill', refundedAt: { $exists: false }, 'metadata.vendor': { $ne: 'bitrefill' } },
             { $set: updateData },
             { returnDocument: 'after' }
         );
@@ -6183,7 +6752,7 @@ async function handleGetAdminAccountOrders(req, res) {
 }
 
 // --- WALLET DEPOSITS (ADMIN TRANSACTION HISTORY) ---
-// Flutterwave top-ups (card, bank transfer, USSD...) and manual admin credits
+// NeuraPay bank transfer top-ups (older ones came through Flutterwave) and manual admin credits
 async function handleGetAdminDeposits(req, res) {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 100);
@@ -6215,14 +6784,14 @@ async function handleGetAdminDeposits(req, res) {
             ])
         ]);
 
-        // 2. Flatten For The Table (the raw Flutterwave payload stays on the server)
+        // 2. Flatten For The Table (the raw gateway payload stays on the server)
         const rows = deposits.map(t => ({
             _id: t._id,
             createdAt: t.createdAt,
             userEmail: t.userId?.email || 'Deleted user',
             fullName: t.userId?.fullName || '',
             amountNGN: t.amountNGN,
-            chargedNGN: t.metadata?.chargedNGN ?? null, // What the customer paid Flutterwave (credit + top-up fee)
+            chargedNGN: t.metadata?.chargedNGN ?? null, // What the customer paid (credit + top-up fee)
             feeNGN: t.metadata?.feeNGN ?? null,
             method: t.paymentMethod || 'card',
             adminEmail: t.metadata?.adminEmail || null,
@@ -6493,7 +7062,7 @@ const ACTIVITY_CATEGORIES = ['deposit', 'purchase', 'refund', 'failed'];
 /**
  * One newest-first timeline of everything users do, ported from DanSMS's "User activity" hub.
  * GET ?page=1&limit=50&category=all|deposit|purchase|refund|failed&search=&userId=
- *   deposit  - wallet deposits, any status (Flutterwave top-ups and admin credits)
+ *   deposit  - wallet deposits, any status (NeuraPay top-ups and admin credits)
  *   purchase - orders of any product that weren't refunded
  *   refund   - orders that were refunded, cancelled or failed
  *   failed   - purchase attempts that never became an order (PurchaseAttempt)
@@ -6659,6 +7228,68 @@ async function handleGetSameehaBalance(req, res) {
     } catch (err) {
         console.error("Sameeha Balance Error:", err.message);
         return res.status(502).json({ success: false, message: "Could not reach Sameeha." });
+    }
+}
+
+// Bitrefill balance for the admin dashboard. A USD account reports it directly. The owner's account is
+// a personal one whose /accounts/balance only shows the empty BTC balance, so the USD balance is worked
+// out from the invoices: USD deposits in, minus everything paid from the balance (dashboard or API).
+// It matched Bitrefill's own figure ($44.50) when it was written. Cached because GET /invoices allows
+// 60 calls per 10 minutes.
+let cachedBitrefillBalance = null;
+let lastBitrefillBalanceFetch = 0;
+const BITREFILL_BALANCE_TTL = 5 * 60 * 1000;
+
+async function handleGetBitrefillBalance(req, res) {
+    if (!process.env.BITREFILL_API_KEY && !isRefillDemoMode()) {
+        return res.status(502).json({ success: false, message: "BITREFILL_API_KEY is not set on the server." });
+    }
+    try {
+        const now = Date.now();
+        if (req.query.refresh !== '1' && cachedBitrefillBalance && (now - lastBitrefillBalanceFetch < BITREFILL_BALANCE_TTL)) {
+            return res.json(cachedBitrefillBalance);
+        }
+        const rate = await getUsdToNgnRate();
+
+        // 1. A USD Account Reports Its Balance Directly
+        const account = await getRefillAccount(true);
+        let balanceUsd;
+        let estimated = false;
+        if (account.currency === 'USD') {
+            balanceUsd = account.balance;
+        } else {
+            // 2. Otherwise Add Up The Invoices
+            balanceUsd = 0;
+            for (let page = 0; page < 20; page++) {
+                const reply = await bitrefillRequest('get', '/invoices', { params: { start: page * 50, limit: 50 }, timeout: 8000 });
+                if (reply.status !== 200) throw new Error(`Bitrefill /invoices replied ${reply.status}: ${reply.data?.message || ''}`);
+                const invoices = Array.isArray(reply.data?.data) ? reply.data.data : [];
+                for (const invoice of invoices) {
+                    const orders = Array.isArray(invoice.orders) ? invoice.orders : [];
+                    // USD deposits (paid in crypto) add to the balance
+                    for (const order of orders) {
+                        if (/^bitrefill-deposit-usd/.test(order.product?.id || '') && order.status === 'delivered') {
+                            balanceUsd += Number(order.product.value) || 0;
+                        }
+                    }
+                    // Purchases paid from the USD balance take from it, unless every item failed (refunded)
+                    const payment = invoice.payment || {};
+                    const paidFromBalance = payment.currency === 'USD' && ['dashboard', 'balance'].includes(payment.method) && payment.status === 'complete';
+                    const allRefunded = orders.length > 0 && orders.every(o => ['failed', 'refunded'].includes(o.status));
+                    if (paidFromBalance && !allRefunded) balanceUsd -= Number(payment.price) || 0;
+                }
+                if (invoices.length < 50) break;
+            }
+            balanceUsd = Math.round(balanceUsd * 100) / 100;
+            estimated = true;
+        }
+
+        cachedBitrefillBalance = { success: true, balanceUsd, balanceNGN: Math.round(balanceUsd * rate), estimated };
+        lastBitrefillBalanceFetch = now;
+        return res.json(cachedBitrefillBalance);
+    } catch (err) {
+        console.error("Bitrefill Balance Error:", err.message);
+        return res.status(502).json({ success: false, message: "Could not reach Bitrefill." });
     }
 }
 
@@ -6855,6 +7486,325 @@ async function handleDeleteAccountPrice(req, res) {
     }
 }
 
+// --- PHONE REFILLS (BITREFILL) ---
+// Joins Bitrefill operators with the admin's prices and the global refill markup.
+// ⚠️ CRITICAL: package prices are in the Bitrefill account's currency, so convert them to USD first.
+async function priceRefillProducts(products) {
+    const [account, overrides, settings] = await Promise.all([
+        getRefillAccount(),
+        RefillPrice.find().lean(),
+        getSystemSettingsCached()
+    ]);
+    const usdPerUnit = await getRefillUsdPerUnit(account.currency);
+    const overrideMap = new Map(overrides.map(o => [o.vendorProductId, o]));
+
+    return products.map(p => {
+        const override = overrideMap.get(p.id);
+        const fixedPrices = new Map((override?.packagePrices || []).map(pp => [pp.packageId, pp.fixedPriceNGN]));
+        const operatorMarkup = Number.isFinite(override?.markupPercentage) ? override.markupPercentage : null;
+        return {
+            ...p,
+            hidden: Boolean(override?.hidden),
+            markupPercentage: operatorMarkup, // This operator's own markup %, or null for the global one
+            packages: p.packages.map(pkg => {
+                const priceUsd = Math.round(pkg.vendorPrice * usdPerUnit * 100) / 100; // Bitrefill's price in USD (cents)
+                return {
+                    ...pkg,
+                    priceUsd,
+                    fixedPriceNGN: fixedPrices.get(pkg.id) ?? null, // The amount's own price, if any
+                    ...priceRefillPackage(priceUsd, fixedPrices.get(pkg.id), settings, operatorMarkup)
+                };
+            })
+        };
+    });
+}
+
+// Public catalog for the eSIM Refill page (no vendor prices)
+async function handleGetPhoneRefillProducts(req, res) {
+    try {
+        const products = (await priceRefillProducts(await getRefillCatalog()))
+            .filter(p => !p.hidden)
+            .sort(compareRefillProducts) // Same order as Bitrefill's site
+            .map(p => ({
+                id: p.id,
+                name: p.name,
+                countryCode: p.countryCode,
+                currency: p.currency,
+                image: p.image,
+                logoBg: p.logoBg,
+                delivery: p.delivery,
+                inStock: p.inStock,
+                packages: p.packages.map(pkg => ({ id: pkg.id, value: pkg.value, label: pkg.label, price: pkg.priceNGN }))
+            }));
+
+        return res.json({ success: true, products });
+    } catch (err) {
+        console.error("Phone Refill Products Error:", err.message);
+        return res.status(502).json({ success: false, message: "Could not load operators right now. Please try again shortly." });
+    }
+}
+
+// Number lookup for the eSIM Refill page: which operator a US number is on (Bitrefill's
+// /check_phone_number). Signed-in users only, rate limited; nothing is bought.
+async function handleLookupRefillNumber(req, res) {
+    const phoneNumber = normalizeUsPhoneNumber(req.query.phone);
+    if (!phoneNumber) {
+        return res.status(400).json({ success: false, message: "Enter a valid 10-digit US phone number." });
+    }
+
+    try {
+        const user = await requireUser(req, res);
+        if (!user) return;
+
+        // 1. Ask Bitrefill (404 means no operator matched)
+        // A number Bitrefill hasn't seen can take ~20 s (cached ones answer in under 2 s)
+        const reply = await bitrefillRequest('get', '/check_phone_number', { params: { phone_number: phoneNumber }, timeout: 25000 });
+        if (reply.status !== 200 && reply.status !== 404) {
+            throw new Error(`Bitrefill /check_phone_number replied ${reply.status}: ${reply.data?.message || ''}`);
+        }
+        const found = reply.status === 200 ? reply.data?.data : null;
+        const vendorIds = (Array.isArray(found) ? found : (found ? [found] : [])).map(p => String(p?.id || '')).filter(Boolean);
+
+        // 2. Keep Operators We Sell (direct top-ups, shown to users)
+        const catalog = (await priceRefillProducts(await getRefillCatalog())).filter(p => !p.hidden && p.delivery === 'topup');
+        const operatorIds = vendorIds.filter(id => catalog.some(p => p.id === id));
+
+        return res.json({
+            success: true,
+            phoneNumber,
+            exact: reply.data?.operator_found === true && operatorIds.length === 1, // One sure match: open it directly
+            operatorIds
+        });
+    } catch (err) {
+        console.error("Refill Number Lookup Error:", err.message);
+        return res.status(502).json({ success: false, message: "Could not check that number right now. Pick your operator below." });
+    }
+}
+
+// Admin pricing view: Bitrefill cost, selling price and the Bitrefill balance
+async function handleGetAdminPhoneRefills(req, res) {
+    try {
+        const forceFresh = req.query.refresh === '1';
+        const [catalog, account, settings] = await Promise.all([
+            getRefillCatalog(forceFresh),
+            getRefillAccount(forceFresh),
+            getSystemSettingsCached()
+        ]);
+        const products = await priceRefillProducts(catalog);
+
+        return res.json({
+            success: true,
+            markupPercentage: settings.refillMarkupPercentage || 0,
+            usdToNgnRate: await getUsdToNgnRate(),
+            vendorBalance: Number.isFinite(account.balance) ? account.balance : null,
+            vendorCurrency: account.currency,
+            demoMode: isRefillDemoMode(),
+            products: products.sort(compareRefillProducts)
+        });
+    } catch (err) {
+        console.error("Admin Phone Refills Error:", err.message);
+        const noKey = !process.env.BITREFILL_API_KEY && !isRefillDemoMode();
+        return res.status(502).json({
+            success: false,
+            message: noKey ? "BITREFILL_API_KEY is not set on the server." : `Could not load Bitrefill: ${err.message}`
+        });
+    }
+}
+
+// Saves one operator's visibility or markup %, or one amount's fixed price. An empty markup or
+// price returns it to the level above (operator markup → global markup).
+async function handleSaveRefillPrice(req, res) {
+    const { productId, productName, packageId, fixedPriceNGN, hidden, markupPercentage } = req.body;
+    const vendorProductId = cleanText(productId, 120);
+    const vendorPackageId = cleanText(packageId, 160);
+    if (!vendorProductId) {
+        return res.status(400).json({ success: false, message: "Invalid operator." });
+    }
+    if (hidden !== undefined && typeof hidden !== 'boolean') {
+        return res.status(400).json({ success: false, message: "Invalid visibility value." });
+    }
+
+    // Operator markup: a number sets it, null or '' clears it, a missing key leaves it alone
+    const markupGiven = Object.prototype.hasOwnProperty.call(req.body, 'markupPercentage');
+    const clearMarkup = markupGiven && (markupPercentage === null || markupPercentage === '');
+    const newMarkup = markupGiven && !clearMarkup ? Number(markupPercentage) : null;
+    if (markupGiven && !clearMarkup && (!Number.isFinite(newMarkup) || newMarkup < 0 || newMarkup > 1000)) {
+        return res.status(400).json({ success: false, message: "Enter a markup between 0% and 1000%, or leave it empty." });
+    }
+
+    const clearPrice = fixedPriceNGN === null || fixedPriceNGN === undefined || fixedPriceNGN === '';
+    const fixedPrice = clearPrice ? null : Math.round(Number(fixedPriceNGN));
+    if (vendorPackageId && !clearPrice && (!Number.isFinite(fixedPrice) || fixedPrice < 1 || fixedPrice > 10000000)) {
+        return res.status(400).json({ success: false, message: "Enter an amount between ₦1 and ₦10,000,000, or leave it empty." });
+    }
+
+    try {
+        const current = await RefillPrice.findOne({ vendorProductId }).lean();
+        const isHidden = hidden ?? Boolean(current?.hidden);
+        const operatorMarkup = markupGiven ? (clearMarkup ? null : Math.round(newMarkup * 100) / 100)
+            : (Number.isFinite(current?.markupPercentage) ? current.markupPercentage : null);
+
+        // 1. Rebuild The Operator's Fixed Prices With This Amount Changed
+        let packagePrices = (current?.packagePrices || []).filter(pp => pp.packageId !== vendorPackageId);
+        if (vendorPackageId && fixedPrice !== null) packagePrices.push({ packageId: vendorPackageId, fixedPriceNGN: fixedPrice });
+        if (!vendorPackageId) packagePrices = current?.packagePrices || [];
+
+        // 2. Nothing Custom Left: Drop The Row So The Operator Follows The Global Markup
+        if (!isHidden && packagePrices.length === 0 && operatorMarkup === null) {
+            await RefillPrice.deleteOne({ vendorProductId });
+            return res.json({
+                success: true,
+                message: hidden === false ? "Operator is visible to users." : (markupGiven ? "Operator now uses the global markup." : "Amount now uses the global markup.")
+            });
+        }
+
+        const fields = {
+            productName: cleanText(productName, 120) || current?.productName,
+            hidden: isHidden,
+            packagePrices,
+            updatedBy: req.admin?.email
+        };
+        if (operatorMarkup !== null) fields.markupPercentage = operatorMarkup;
+        await RefillPrice.findOneAndUpdate(
+            { vendorProductId },
+            { $set: fields, ...(operatorMarkup === null ? { $unset: { markupPercentage: '' } } : {}) },
+            { upsert: true, returnDocument: 'after', runValidators: true }
+        );
+
+        // 3. Warn When The Fixed Price Sits Under Bitrefill's Cost (it is ignored at sale time)
+        const product = cachedRefillCatalog?.find(p => p.id === vendorProductId);
+        const pkg = product ? (await priceRefillProducts([product]))[0].packages.find(pp => pp.id === vendorPackageId) : null;
+        const costNGN = pkg ? pkg.vendorCostNGN : null;
+        const belowCost = fixedPrice !== null && costNGN !== null && fixedPrice < costNGN;
+
+        return res.json({
+            success: true,
+            message: belowCost
+                ? `Saved, but ₦${fixedPrice.toLocaleString()} is below the Bitrefill cost of ₦${costNGN.toLocaleString()}. The markup is used until you raise it.`
+                : (vendorPackageId ? "Price saved."
+                    : (markupGiven ? (operatorMarkup === null ? "Operator now uses the global markup." : `Operator markup set to ${operatorMarkup}%.`)
+                        : (isHidden ? "Operator hidden from users." : "Operator is visible to users.")))
+        });
+    } catch (err) {
+        console.error("Save Refill Price Error:", err);
+        return res.status(500).json({ success: false, message: "Internal server error." });
+    }
+}
+
+async function handleDeleteRefillPrice(req, res) {
+    const vendorProductId = cleanText(req.body?.productId ?? req.query.productId, 120);
+    if (!vendorProductId) {
+        return res.status(400).json({ success: false, message: "Invalid operator." });
+    }
+
+    try {
+        await RefillPrice.deleteOne({ vendorProductId });
+        return res.json({ success: true, message: "Operator reset to the global markup." });
+    } catch (err) {
+        console.error("Delete Refill Price Error:", err);
+        return res.status(500).json({ success: false, message: "Internal server error." });
+    }
+}
+
+/**
+ * Settles top-ups Bitrefill hadn't finished at purchase time: delivered ones are completed and
+ * emailed, failed ones refunded. Runs lazily (user orders, admin refills list) and from the daily
+ * cron. Each order is checked at most once a minute, because GET /invoices/{id} is rate limited.
+ */
+async function syncPendingRefills(extraFilter = {}, limit = 5) {
+    const dueFilter = {
+        productType: 'eSIM_Refill',
+        status: 'pending',
+        'metadata.vendor': 'bitrefill',
+        refundedAt: { $exists: false },
+        $or: [
+            { 'metadata.lastVendorCheckAt': { $exists: false } },
+            { 'metadata.lastVendorCheckAt': { $lte: new Date(Date.now() - REFILL_STATUS_CHECK_GAP_MS) } }
+        ]
+    };
+    const orders = await Order.find({ ...extraFilter, ...dueFilter }).select('_id').limit(limit).lean();
+
+    let settled = 0;
+    for (const { _id } of orders) {
+        // 1. Claim The Check, So Two Requests Never Settle The Same Order
+        const order = await Order.findOneAndUpdate(
+            { _id, ...dueFilter },
+            { $set: { 'metadata.lastVendorCheckAt': new Date() } },
+            { returnDocument: 'after' }
+        );
+        if (!order) continue;
+
+        // 2. Ask Bitrefill How The Invoice Ended
+        let reply;
+        try {
+            reply = await bitrefillRequest('get', `/invoices/${encodeURIComponent(order.metadata.vendorInvoiceId)}`, { timeout: 5000 });
+        } catch (apiErr) {
+            console.warn(`Bitrefill status check failed for ${order.paymentReference}:`, apiErr.message);
+            continue;
+        }
+        if (reply.status !== 200) {
+            console.warn(`Bitrefill invoice ${order.metadata.vendorInvoiceId} replied ${reply.status}`);
+            continue;
+        }
+        const invoice = reply.data?.data || reply.data || {};
+        const outcome = readRefillInvoice(invoice);
+
+        // 3. Complete Or Refund (a PIN waits until Bitrefill shows its code)
+        const isPin = order.metadata?.delivery === 'pin';
+        const pinCode = isPin ? readRefillPin(invoice) : null;
+        if (outcome === 'delivered' && isPin && !pinCode) {
+            console.warn(`Bitrefill invoice ${order.metadata.vendorInvoiceId} is delivered but has no PIN yet`);
+        } else if (outcome === 'delivered') {
+            const vendorOrderId = String(invoice.orders?.[0]?.id || order.metadata.vendorOrderId || '');
+            const completed = await Order.findOneAndUpdate(
+                { _id: order._id, status: 'pending', refundedAt: { $exists: false } },
+                {
+                    $set: {
+                        status: 'completed',
+                        confirmationNumber: vendorOrderId || order.metadata.vendorInvoiceId,
+                        deliveredAt: new Date(),
+                        instructions: refillInstructions(isPin, true),
+                        ...(pinCode ? { activationCode: pinCode.pin } : {}),
+                        ...(pinCode?.details ? { 'metadata.pinDetails': pinCode.details } : {}),
+                        'metadata.vendorOrderId': vendorOrderId || null
+                    }
+                },
+                { returnDocument: 'after' }
+            );
+            if (completed) {
+                settled++;
+                sendRefillDeliveredEmail(completed);
+            }
+        } else if (outcome === 'failed' || outcome === 'unpaid') {
+            try {
+                const refund = await refundOrderToWallet(order._id, `Top-up failed at Bitrefill (${invoice.status || outcome})`, 'failed', { status: 'pending' });
+                if (refund.success) settled++;
+            } catch (refundErr) {
+                console.error(`⚠️ CRITICAL: Refill refund failed for ${order.paymentReference}:`, refundErr.message);
+            }
+        }
+    }
+    return { checked: orders.length, settled };
+}
+
+// Customer email for a delivered top-up (never fails the caller)
+function sendRefillDeliveredEmail(order) {
+    sendDeliveryEmail(order.userEmail, {
+        productType: 'eSIM_Refill',
+        nodeName: order.nodeName,
+        targetNumber: order.targetNumber,
+        country: order.country,
+        amount: order.amount,
+        paymentReference: order.paymentReference,
+        confirmationNumber: order.confirmationNumber,
+        activationCode: order.activationCode, // The PIN, for PIN products
+        pinDetails: order.metadata?.pinDetails,
+        planName: order.planName,
+        instructions: order.instructions,
+        purchaseDate: order.createdAt || new Date()
+    }).catch(err => console.error("📧 Refill Email Error:", err.message));
+}
+
 async function syncSmsOrderFromVendor(order) {
     const activeVendorId = order.vendorOrderId || order.metadata?.tzid;
     if (!activeVendorId) return null;
@@ -6973,7 +7923,7 @@ async function handleRecheckSms(req, res) {
             return res.status(404).json({ success: false, message: "Order not found." });
         }
 
-        if (!(order.vendorOrderId || order.metadata?.tzid)) {
+        if (order.productType !== 'SmsNumber' || !(order.vendorOrderId || order.metadata?.tzid)) {
             return res.status(400).json({ success: false, message: "No active vendor activation ID found for this order." });
         }
 
@@ -7209,7 +8159,8 @@ const SMS_CANCEL_CONFIRMED = ['ACCESS_CANCEL', 'ACCESS_CANCEL_ALREADY', 'NO_ACTI
 
 async function autoCancelAndRefundOrder(orderId, reason = 'auto_expired_no_sms') {
     const order = await Order.findById(orderId);
-    if (!order || order.status !== 'pending' || order.smsCode || order.refundedAt) {
+    // ⚠️ CRITICAL: SMS numbers only. A pending top-up or manual order can't be cancelled by the user
+    if (!order || order.productType !== 'SmsNumber' || order.status !== 'pending' || order.smsCode || order.refundedAt) {
         return { success: false, reason: 'Order not eligible for refund' };
     }
 
@@ -7292,7 +8243,11 @@ async function handleExpireSmsOrders(req, res) {
 
     try {
         const result = await expireStaleSmsOrders({}, 100);
-        return res.json({ success: true, message: `Checked ${result.checked}, refunded ${result.refunded}.`, ...result });
+        const refills = await syncPendingRefills({}, 20).catch(err => {
+            console.error("Cron Refill Sync Error:", err.message);
+            return { checked: 0, settled: 0 };
+        });
+        return res.json({ success: true, message: `Checked ${result.checked}, refunded ${result.refunded}. Top-ups settled: ${refills.settled}.`, ...result, refills });
     } catch (err) {
         console.error("Expire SMS Orders Error:", err);
         return res.status(500).json({ success: false, message: "Expiry run failed." });
@@ -7304,8 +8259,9 @@ async function handleGetUserOrders(req, res) {
         const user = await requireUser(req, res);
         if (!user) return;
 
-        // Refund this user's expired SMS numbers before listing them
+        // Refund this user's expired SMS numbers and settle their pending top-ups before listing them
         await expireStaleSmsOrders({ userId: user._id }, 5).catch(err => console.error("Lazy SMS Expiry Error:", err.message));
+        await syncPendingRefills({ userId: user._id }, 3).catch(err => console.error("Lazy Refill Sync Error:", err.message));
 
         const limit = Math.min(parseInt(req.query.limit) || 200, 500);
 
@@ -7337,9 +8293,18 @@ async function handleGetOrderDetails(req, res) {
         }
 
         // 1. Find the order by _id, vendorOrderId or tzid, owned by this user only
-        const order = await Order.findOne(buildOwnedOrderFilter(orderId, user));
+        let order = await Order.findOne(buildOwnedOrderFilter(orderId, user));
         if (!order) {
             return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        // A pending Bitrefill top-up: ask Bitrefill how it ended (at most once a minute)
+        if (order.status === 'pending' && order.metadata?.vendor === 'bitrefill') {
+            const sync = await syncPendingRefills({ _id: order._id }, 1).catch(err => {
+                console.error("Refill Status Sync Error:", err.message);
+                return { settled: 0 };
+            });
+            if (sync.settled > 0) order = await Order.findById(order._id);
         }
 
         // 2. If still pending, query SMSBower live, and refund if the number has expired
@@ -7347,7 +8312,7 @@ async function handleGetOrderDetails(req, res) {
         const isWaitingForFirstCode = order.status === 'pending' && !order.smsCode;
         const isWaitingForNextCode = order.status === 'completed' && order.metadata?.awaitingNextCode === true;
 
-        if (activeVendorId && (isWaitingForFirstCode || isWaitingForNextCode)) {
+        if (order.productType === 'SmsNumber' && activeVendorId && (isWaitingForFirstCode || isWaitingForNextCode)) {
             try {
                 const statusText = await syncSmsOrderFromVendor(order);
                 const orderAgeMs = order.createdAt ? Date.now() - new Date(order.createdAt).getTime() : 0;
@@ -7741,7 +8706,7 @@ async function handleUpdateSystemSettings(req, res) {
 
     try {
         // Only known settings fields can be written
-        const SETTINGS_FIELDS = ['maintenanceMode', 'allowSignups', 'globalMarkup', 'smsMarkupPercentage', 'smsFloorPriceNGN', 'accountMarkupPercentage', 'usdToNgnRate', 'noticeBarText', 'supportWhatsapp',
+        const SETTINGS_FIELDS = ['maintenanceMode', 'allowSignups', 'globalMarkup', 'smsMarkupPercentage', 'smsFloorPriceNGN', 'accountMarkupPercentage', 'refillMarkupPercentage', 'usdToNgnRate', 'noticeBarText', 'supportWhatsapp',
             'referralBonusNGN', 'referralMilestone', 'referralMinDepositNGN'];
         const updateData = {};
         SETTINGS_FIELDS.forEach(field => {
@@ -7835,7 +8800,9 @@ async function handleGetUserTransactions(req, res) {
                 if (tx.purpose !== 'deposit' && tx.metadata?.usedBonus === true) {
                     sourceLabel = 'Referral Bonus';
                 } else if (tx.purpose === 'deposit') {
-                    sourceLabel = tx.metadata?.payment_type || 'External Topup';
+                    sourceLabel = tx.paymentMethod === 'bank_transfer'
+                        ? 'Bank Transfer' // NeuraPay top-ups
+                        : tx.metadata?.payment_type || 'External Topup'; // Old Flutterwave ones kept their payment type
                 }
 
                 const order = ordersById.get(String(tx.metadata?.orderId));

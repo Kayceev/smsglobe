@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-   <title>eSIM Refill | Top-up Your Global Data Plan | DeemaxHub</title>
-    <meta name="description" content="Quickly refill your global eSIM data. Instant top-ups for international travel data plans. Stay connected across 150+ countries with DeemaxHub.">
-    <meta name="keywords" content="eSIM refill, top up eSIM, international data top up, travel data refill, buy eSIM data, DeemaxHub eSIM">
+   <title>US Phone &amp; eSIM Top-up | T-Mobile, AT&amp;T, Verizon | DeemaxHub</title>
+    <meta name="description" content="Top up any US prepaid number or eSIM instantly: T-Mobile, AT&amp;T, Verizon, Lyca, Ultra and more. Pay in naira from your DeemaxHub wallet.">
+    <meta name="keywords" content="eSIM refill, US phone top up, T-Mobile refill, AT&amp;T refill, Verizon top up, pay in naira, DeemaxHub eSIM">
 
     <meta name="google-site-verification" content="fTAchZCV3xVxBR75Z-jILoW7xPd5kSnfKTOpRrwC3BE" />
 
-    <meta property="og:title" content="Confirm eSIM Refill | DeemaxHub">
-    <meta property="og:description" content="Quickly top up your travel data and stay connected globally. Instant activation.">
+    <meta property="og:title" content="US Phone &amp; eSIM Top-up | DeemaxHub">
+    <meta property="og:description" content="Top up US prepaid numbers and eSIMs instantly, paid in naira.">
     <meta property="og:image" content="https://www.deemaxhub.com/assets/logo.png">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.deemaxhub.com/esim-refill">
@@ -26,7 +26,7 @@
                 extend: {
                     colors: {
                         brand: {
-                            blue: '#0F54C6', orange: '#F9861E', darkText: '#101828',
+                            blue: '#0F54C6', orange: '#F9861E', red: '#E31E24', darkText: '#101828',
                             midText: '#344054', lightText: '#667085', background: '#F0F5FE', border: '#EAECF0',
                         }
                     },
@@ -41,11 +41,9 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        @media (max-width: 640px) { 
-            html { font-size: 13px; } 
-            .mobile-title { font-size: 1.1rem !important; }
-            .mobile-label { font-size: 9px !important; }
-            .mobile-input { font-size: 13px !important; padding: 0.75rem !important; }
+        /* Prevents zooming on inputs (as on the Buy Number page) */
+        @media screen and (max-width: 768px) {
+            input, select, textarea { font-size: 16px !important; }
         }
 
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
@@ -162,520 +160,608 @@
             </div>
         </header>
 
-        <main class="p-4 md:p-8 max-w-5xl w-full mx-auto flex flex-col flex-grow">
-            
-            <div id="selectionView">
-                <div class="mb-6">
-                    <h2 class="text-lg md:text-xl font-bold text-brand-darkText mobile-title">Select a Carrier</h2>
-                    <p class="text-[10px] md:text-xs text-brand-lightText">Choose your provider to begin the refill.</p>
-                </div>
-                <div id="carrierGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6"></div>
-            </div>
+        <main class="p-4 md:p-6 max-w-6xl w-full mx-auto flex-grow">
 
-            <div id="formView" class="hidden animate-flow">
-                <button onclick="goBackToGrid()" class="mb-5 flex items-center gap-2 text-[10px] font-bold text-brand-blue uppercase hover:translate-x-[-4px] transition-transform">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    Back to Carriers
-                </button>
-                
-                <div class="bg-white border border-brand-border rounded-2xl md:rounded-3xl overflow-hidden shadow-sm max-w-xl mx-auto">
-                    <div class="bg-brand-blue p-6 md:p-8 text-center text-white">
-                        <div class="bg-white w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl p-3 mx-auto mb-4 shadow-lg">
-                            <img id="formCarrierLogo" src="" class="w-full h-full object-contain">
+            <!-- ================= STEP 1: OPERATOR PICKER ================= -->
+            <div id="selectionView" class="space-y-6">
+
+                <!-- Number Lookup (finds the operator for the customer; optional) -->
+                <section>
+                    <h2 class="text-base md:text-lg font-semibold text-brand-lightText mb-3 md:mb-4">Find Your Operator</h2>
+                    <form onsubmit="lookupNumber(event)" class="bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1 min-w-0 flex items-stretch bg-brand-background border border-brand-border rounded-xl focus-within:border-brand-blue focus-within:ring-2 focus-within:ring-brand-blue/30 transition-colors">
+                                <span class="flex items-center px-4 text-[15px] font-semibold text-brand-lightText border-r border-brand-border whitespace-nowrap">🇺🇸 +1</span>
+                                <input type="tel" id="lookupNumber" aria-label="US phone number" inputmode="numeric" autocomplete="tel-national" placeholder="(201) 555-0123" oninput="formatPhoneInput(this)" class="w-full min-w-0 bg-transparent px-4 py-4 text-[15px] font-semibold text-brand-darkText placeholder-brand-lightText outline-none">
+                            </div>
+                            <button type="submit" id="lookupBtn" class="sm:w-44 bg-brand-red hover:bg-red-700 text-white py-4 rounded-xl text-[15px] font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 disabled:opacity-60 disabled:shadow-none disabled:cursor-not-allowed">Find Operator</button>
                         </div>
-                        <h2 id="formCarrierName" class="text-xl md:text-2xl font-bold">--</h2>
-                        <p class="text-blue-100 text-[9px] uppercase font-bold tracking-widest mt-1">Direct Refill Portal</p>
-                    </div>
+                        <p id="lookupResult" class="hidden mt-3 text-[13px] text-brand-midText"></p>
+                    </form>
+                </section>
 
-                    <div class="p-5 md:p-10 space-y-5">
-                        <div>
-                            <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label">eSIM Mobile Number</label>
-                            <input type="text" id="targetNumber" placeholder="+1 (000) 000-0000" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all mobile-input">
+                <!-- Operators (Bitrefill's order) -->
+                <section>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 md:mb-4">
+                        <h2 class="text-base md:text-lg font-semibold text-brand-lightText">US Phone Refills</h2>
+                        <div class="relative sm:w-72">
+                            <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-lightText" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"></path></svg>
+                            <input id="operatorSearch" type="search" placeholder="Search operators..." oninput="renderOperators()" class="w-full bg-white border border-brand-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-brand-darkText placeholder-brand-lightText focus:outline-none focus:ring-2 focus:ring-brand-blue/30">
                         </div>
-                        <div>
-                <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label"> Country</label>
-                <input type="text" id="coverageCountry" placeholder="e.g. United States" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none transition-all mobile-input">
-            </div>
-                        <div>
-                            <label class="text-[9px] md:text-[10px] font-bold text-brand-blue uppercase tracking-wider mb-2 block mobile-label">Refill Amount (NGN)</label>
-                            <select id="planSelector" class="w-full bg-brand-background border border-brand-border p-3 md:p-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold focus:ring-2 focus:ring-brand-blue outline-none appearance-none cursor-pointer mobile-input"></select>
-                        </div>
-
-                        <button onclick="initiatePayment()" id="payBtn" class="w-full py-4 md:py-5 bg-brand-blue text-white rounded-xl md:rounded-2xl text-xs md:text-sm font-bold shadow-xl hover:bg-blue-700 transition-all active:scale-[0.98]">
-                            Proceed to Refill
-                        </button>
                     </div>
-                </div>
-            </div>
-
-           
-
-            <div id="receiptView" class="hidden animate-flow py-4 md:py-8 px-4">
-    <div class="bg-white border-2 border-dashed border-brand-border rounded-[2rem] p-5 md:p-8 max-w-[340px] md:max-w-md mx-auto shadow-2xl relative">
-        <div class="flex justify-center mb-4">
-            <img src="/assets/logo.png" alt="DeemaxHub Logo" class="h-8 md:h-10 object-contain">
-        </div>
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 md:w-10 md:h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-            <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-        </div>
-        <div class="text-center mt-2">
-            <h2 class="text-base md:text-xl font-black text-brand-darkText uppercase tracking-tight">Purchase Successful</h2>
-            <p class="text-[9px] md:text-[10px] text-brand-lightText mt-1">Order Ref: <span id="rID" class="font-mono bg-gray-100 px-1 rounded">--</span></p>
-        </div>
-        <div class="my-5 space-y-2.5 border-t border-b border-dashed border-brand-border py-5 font-mono text-[10px] md:text-xs">
-            <div class="flex justify-between items-center"><span class="text-brand-lightText">Carrier:</span> <span id="rCarrier" class="font-bold text-right text-brand-darkText uppercase">--</span></div>
-            <div class="flex justify-between items-center"><span class="text-brand-lightText">Target Number:</span> <span id="rNumber" class="font-bold text-right text-brand-darkText">--</span></div>
-           <div class="flex justify-between items-center"><span class="text-brand-lightText">Country:</span>  <span id="rCountry" class="font-bold text-right text-brand-darkText uppercase">--</span></div>
-            <div class="flex justify-between items-center"><span class="text-brand-lightText">Plan Paid:</span> <span id="rPlan" class="font-bold text-right text-brand-darkText">--</span></div>
-            <div class="flex justify-between items-center"><span class="text-brand-lightText">Payment Method:</span> <span class="bg-brand-blue text-white px-2 py-0.5 rounded font-bold text-[8px] md:text-[9px] uppercase">Wallet Balance 💳</span></div>
-            <div class="flex justify-between items-center pt-1"><span class="text-brand-lightText">Refill Status:</span> <span class="text-orange-600 font-bold text-[9px] uppercase animate-pulse">Processing by DeemaxHub</span></div>
-        </div>
-        <button onclick="contactManagement()" class="w-full py-3.5 bg-[#25D366] text-white rounded-xl text-[10px] md:text-[12px] font-bold flex items-center justify-center gap-2 hover:brightness-95 active:scale-[0.98] transition-all shadow-md">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-            Click to Notify DeemaxHub for Refill
-        </button>
-        <button onclick="location.reload()" class="w-full text-[8px] md:text-[10px] font-black text-brand-lightText hover:text-brand-blue uppercase py-3 mt-1 tracking-widest transition-colors">← New Transaction</button>
-    </div>
-</div>
-
- <div id="userGuide" class="mt-12 bg-white border border-brand-border rounded-3xl p-6 md:p-8 shadow-sm">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-2 bg-orange-100 text-orange-600 rounded-lg">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div id="carrierGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+                        <p class="col-span-full bg-white border border-brand-border rounded-2xl px-4 py-5 text-center text-xs text-brand-lightText">Loading operators...</p>
                     </div>
-                    <h3 class="text-sm md:text-base font-bold text-brand-darkText uppercase tracking-tight">Instructions / User Guide</h3>
-                </div>
-                <div class="space-y-4">
-                    <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-xl">
-                        <p class="text-[11px] md:text-xs font-bold text-orange-800 uppercase leading-relaxed">
-                            IMPORTANT NOTICE: YOU MUST KNOW THE ORIGINAL PAYMENT OF YOUR ESIM PLAN AND MAKE SURE YOU CHOOSE YOUR ORIGINAL PAYMENT PLAN. IF YOU MAKE PAYMENT OF OTHER PLAN THAT DIDNT' MATCH YOUR CURRENT PLAN WE WON'T BE RESPONSIBLE FOR ANY LOST. THANK YOU WE APPRECIATE YOUR SUPPORT AT DEEMAXHUB.
+                </section>
+
+                <!-- How It Works -->
+                <section>
+                    <h2 class="text-base md:text-lg font-semibold text-brand-lightText mb-3 md:mb-4">How It Works</h2>
+                    <div class="bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
+                        <ol class="space-y-3 text-[13px] md:text-sm text-brand-midText">
+                            <li class="flex gap-3"><span class="w-5 h-5 shrink-0 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px] font-bold">1</span> Pick the operator your number is on, or type the number above and we'll find it.</li>
+                            <li class="flex gap-3"><span class="w-5 h-5 shrink-0 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px] font-bold">2</span> Enter the 10-digit US number (without the +1) and choose the amount.</li>
+                            <li class="flex gap-3"><span class="w-5 h-5 shrink-0 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px] font-bold">3</span> Pay from your wallet. Most top-ups land in seconds; a failed one is refunded automatically.</li>
+                        </ol>
+                        <p class="mt-4 bg-brand-background border border-brand-border rounded-xl p-3 text-xs text-brand-midText">
+                            <span class="font-bold text-brand-darkText">PIN and PINLESS products</span> need no number: you get a PIN on screen, by email and in Order History, and load it on your phone yourself. A delivered top-up or PIN can't be cancelled, so check the operator, number and amount first.
                         </p>
                     </div>
-                    <ul class="text-[10px] md:text-xs text-brand-midText space-y-2 list-disc pl-4">
-                        <li>Select your active eSIM carrier from the list above.</li>
-                        <li>Enter the correct mobile number associated with your eSIM.</li>
-                        <li>Select the refill amount that matches your current subscription plan.</li>
-                        <li>After successful payment, click the WhatsApp button to notify DeemaxHub for instant processing.</li>
-                    </ul>
+                </section>
+            </div>
+
+            <!-- ================= STEP 2: NUMBER & AMOUNT ================= -->
+            <div id="formView" class="hidden animate-flow max-w-xl mx-auto">
+                <button onclick="goBackToGrid()" class="mb-3 md:mb-4 flex items-center gap-1.5 text-[13px] font-semibold text-brand-blue hover:underline">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    All Operators
+                </button>
+
+                <div class="bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
+                    <!-- Operator Tile -->
+                    <div class="flex items-center gap-3 bg-brand-background border border-brand-border rounded-2xl p-3 mb-5">
+                        <div id="formCarrierLogo" class="w-20 h-12 shrink-0"></div>
+                        <div class="min-w-0">
+                            <p id="formCarrierName" class="font-bold text-brand-darkText truncate">--</p>
+                            <p id="formDeliveryLabel" class="text-xs text-brand-lightText mt-0.5">Instant Top-up</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Phone Number (direct top-ups only) -->
+                    <div id="phoneSection" class="mb-5">
+                        <label for="targetNumber" class="text-xs font-bold uppercase tracking-widest text-brand-lightText mb-2 flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px]">1</span> Phone Number
+                        </label>
+                        <div class="flex items-stretch bg-brand-background border border-brand-border rounded-xl focus-within:border-brand-blue focus-within:ring-2 focus-within:ring-brand-blue/30 transition-colors">
+                            <span class="flex items-center px-4 text-[15px] font-semibold text-brand-lightText border-r border-brand-border whitespace-nowrap">🇺🇸 +1</span>
+                            <input type="tel" id="targetNumber" inputmode="numeric" autocomplete="tel-national" placeholder="(555) 123-4567" oninput="formatPhoneInput(this)" class="w-full min-w-0 bg-transparent px-4 py-4 text-[15px] font-semibold text-brand-darkText placeholder-brand-lightText outline-none">
+                        </div>
+                        <p class="text-xs text-brand-lightText mt-2">The number must be on <span id="formOperatorHint" class="font-semibold text-brand-darkText">this operator</span>.</p>
+                    </div>
+
+                    <!-- PIN Products: no number, a code instead -->
+                    <div id="pinNotice" class="hidden mb-5 bg-brand-background border border-brand-border rounded-xl p-3 text-xs text-brand-midText">
+                        You'll get a PIN on screen and by email. Load it on a phone that uses <span id="pinOperatorHint" class="font-semibold text-brand-darkText">this operator</span>.
+                    </div>
+
+                    <!-- Step 2: Amount -->
+                    <p class="text-xs font-bold uppercase tracking-widest text-brand-lightText mb-2 flex items-center gap-2">
+                        <span id="amountStepNo" class="w-5 h-5 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px]">2</span> <span id="amountLabel">Top-up Amount</span>
+                    </p>
+                    <div id="amountGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 max-h-80 overflow-y-auto p-1 -m-1"></div>
+
+                    <button onclick="initiatePayment()" id="payBtn" disabled class="mt-5 w-full bg-brand-red hover:bg-red-700 text-white py-4 rounded-xl text-[15px] font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:cursor-not-allowed disabled:hover:bg-brand-red">
+                        Select an Amount
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= STEP 3: RECEIPT ================= -->
+            <div id="receiptView" class="hidden animate-flow max-w-md mx-auto">
+                <div class="bg-white border border-brand-border rounded-[24px] shadow-xl shadow-blue-900/5 p-5 md:p-6">
+                    <div class="text-center">
+                        <div id="rBadge" class="w-14 h-14 mx-auto rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h2 id="rTitle" class="mt-3 text-lg font-bold text-brand-darkText">Top-up Sent</h2>
+                        <p class="text-xs text-brand-lightText mt-1">Order Ref: <span id="rID" class="font-mono">--</span></p>
+                    </div>
+
+                    <!-- PIN Products: the code to load -->
+                    <div id="rPinBox" class="hidden mt-5 bg-brand-background border border-dashed border-brand-blue/40 rounded-2xl p-4 text-center">
+                        <p class="text-xs font-bold uppercase tracking-widest text-brand-lightText">Your PIN</p>
+                        <p id="rPin" class="mt-1 text-xl md:text-2xl font-bold font-mono text-brand-darkText break-all select-all">--</p>
+                        <button onclick="copyPin()" id="copyPinBtn" class="mt-3 px-4 py-2 bg-white border border-brand-border hover:border-brand-blue rounded-xl text-xs font-semibold text-brand-blue transition-colors">Copy PIN</button>
+                        <p id="rPinDetails" class="hidden mt-3 text-xs text-brand-midText text-left whitespace-pre-line break-words"></p>
+                    </div>
+
+                    <!-- Order Details -->
+                    <div class="mt-5 space-y-2.5 text-sm">
+                        <div class="flex justify-between items-center gap-3"><span class="text-brand-lightText">Operator</span><span id="rCarrier" class="font-semibold text-brand-darkText text-right">--</span></div>
+                        <div id="rNumberRow" class="flex justify-between items-center gap-3"><span class="text-brand-lightText">Number</span><span id="rNumber" class="font-semibold text-brand-darkText text-right">--</span></div>
+                        <div class="flex justify-between items-center gap-3"><span class="text-brand-lightText">Top-up</span><span id="rPlan" class="font-semibold text-brand-darkText text-right">--</span></div>
+                        <div class="flex justify-between items-center gap-3"><span class="text-brand-lightText">Paid</span><span id="rAmount" class="font-bold text-brand-darkText text-right">--</span></div>
+                        <div id="rConfirmRow" class="hidden flex justify-between items-center gap-3"><span class="text-brand-lightText">Confirmation</span><span id="rConfirm" class="font-semibold text-brand-darkText text-right break-all">--</span></div>
+                        <div class="flex justify-between items-center gap-3 border-t border-dashed border-brand-border pt-2.5"><span class="text-brand-lightText">Status</span><span id="rStatus" class="font-bold">--</span></div>
+                    </div>
+
+                    <p id="rNote" class="mt-4 text-xs text-brand-lightText text-center">--</p>
+
+                    <div class="mt-5 space-y-2">
+                        <button id="checkStatusBtn" onclick="checkRefillStatus()" class="hidden w-full bg-brand-red hover:bg-red-700 text-white py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 disabled:opacity-60">
+                            Check Status
+                        </button>
+                        <a href="/orders" class="block w-full py-3.5 bg-brand-background border border-brand-border hover:border-brand-blue rounded-xl text-sm font-semibold text-brand-blue text-center transition-colors">
+                            View Order History
+                        </a>
+                        <button onclick="location.reload()" class="w-full py-2 text-[13px] font-semibold text-brand-lightText hover:text-brand-blue transition-colors">New Top-up</button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
 
+    <!-- Confirm Top-up (same layout as the Buy Number confirm dialog) -->
     <div id="paymentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center px-4">
-    <div class="fixed inset-0 bg-brand-darkText/60 backdrop-blur-sm" onclick="closePaymentModal()"></div>
-    
-    <div class="bg-white rounded-3xl p-8 max-w-sm w-full relative z-10 shadow-2xl scale-up overflow-hidden">
-        
-        <div id="modalIconContainer" class="flex justify-center mb-4">
-            </div>
+        <div class="fixed inset-0 bg-brand-darkText/60 backdrop-blur-sm" onclick="closePaymentModal()"></div>
 
-        <div class="text-center mb-6">
-            <h3 class="text-xl font-black text-brand-darkText uppercase tracking-tight">Confirm Refill</h3>
-            <p class="text-[10px] text-brand-lightText mt-1">Review your balances before proceeding.</p>
-        </div>
-
-        <div class="space-y-3 mb-8">
-            <div class="p-4 bg-gray-50 rounded-2xl border border-brand-border">
-                <span class="text-[9px] font-bold text-brand-lightText uppercase block mb-1">Main Wallet Balance</span>
-                <span id="modalBalanceNGN" class="text-base font-black text-brand-darkText">₦0.00</span>
-            </div>
-
-            <div id="esimBonusSection" class="hidden p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+        <div class="bg-white rounded-[24px] p-6 max-w-[400px] w-full relative z-10 shadow-2xl animate-flow">
+            <div class="flex items-center gap-3 mb-5">
+                <span class="w-11 h-11 rounded-full bg-brand-blue/10 text-brand-blue flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </span>
                 <div>
-                    <span class="text-[9px] font-bold text-emerald-700 uppercase block mb-1">Referral Bonus</span>
-                    <span id="modalBonusBalanceNGN" class="text-sm font-black text-emerald-600">₦0.00</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span id="esimBonusStatusLabel" class="text-[8px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200">USE FIRST</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="esimUseBonusToggle" class="sr-only peer" checked>
-                        <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
-                    </label>
+                    <h3 class="text-lg font-bold text-brand-darkText">Confirm top-up</h3>
+                    <p class="text-xs text-brand-lightText">Check the details. Top-ups can't be reversed.</p>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center p-4 bg-brand-blue/5 rounded-2xl border border-brand-blue/10">
-                <span class="text-[10px] font-bold text-brand-blue uppercase">Total Amount Due</span>
-                <span id="modalTotalDue" class="text-base font-black text-brand-blue">₦0.00</span>
+            <!-- Order Tile -->
+            <div class="flex items-center gap-3 bg-brand-background border border-brand-border rounded-2xl p-3">
+                <div id="modalLogo" class="w-16 h-10 shrink-0"></div>
+                <div class="min-w-0">
+                    <p id="modalOperator" class="font-bold text-brand-darkText text-sm truncate">--</p>
+                    <p class="text-xs text-brand-lightText mt-0.5"><span id="modalNumberLabel">Number</span>: <span id="modalNumber" class="font-semibold text-brand-midText">--</span></p>
+                </div>
             </div>
-        </div>
 
-        <div class="flex flex-col gap-3">
-            <button id="confirmPurchaseBtn" onclick="purchaseEsimWithWallet()" class="w-full bg-brand-blue text-white py-4 rounded-2xl font-bold active-scale transition-all duration-200 uppercase text-xs tracking-wider">
-                Confirm & Pay Now
-            </button>
+            <!-- Price Breakdown -->
+            <div class="mt-4 space-y-2.5 text-sm">
+                <div class="flex justify-between items-center"><span class="text-brand-lightText">Top-up</span><span id="modalFaceValue" class="font-semibold text-brand-darkText">--</span></div>
+                <div class="flex justify-between items-center"><span class="text-brand-lightText">Your balance</span><span id="modalBalanceNGN" class="font-semibold text-brand-darkText">₦0</span></div>
 
-            <a href="/fund-wallet" id="topupBtn" class="hidden w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-center active-scale hover:bg-emerald-700 transition-all duration-200 uppercase text-xs">
-                Topup Wallet Balance
-            </a>
+                <label for="esimUseBonusToggle" id="esimBonusSection" class="hidden flex justify-between items-center bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 cursor-pointer">
+                    <span>
+                        <span class="block text-xs font-semibold text-emerald-700">Referral bonus</span>
+                        <span id="modalBonusBalanceNGN" class="text-sm font-bold text-emerald-600">₦0</span>
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <span id="esimBonusStatusLabel" class="text-[10px] font-bold text-emerald-700 bg-white px-2 py-1 rounded-md border border-emerald-200">USE FIRST</span>
+                        <input type="checkbox" id="esimUseBonusToggle" class="w-5 h-5 rounded border-emerald-300 text-emerald-600 cursor-pointer" checked onchange="updateModalFunds()">
+                    </span>
+                </label>
 
-            <button onclick="closePaymentModal()" class="w-full py-2 text-[10px] font-bold text-brand-lightText hover:text-brand-darkText uppercase">
-                Go Back
-            </button>
+                <div class="flex justify-between items-center border-t border-dashed border-brand-border pt-2.5">
+                    <span class="text-brand-lightText">Total</span>
+                    <span id="modalTotalDue" class="font-bold text-brand-darkText">₦0</span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button onclick="closePaymentModal()" class="flex-1 py-3.5 border border-brand-border rounded-xl text-sm font-semibold text-brand-midText hover:border-brand-blue transition-colors">Cancel</button>
+                <button id="confirmPurchaseBtn" onclick="purchaseRefill()" class="flex-1 py-3.5 bg-brand-red hover:bg-red-700 text-white rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 disabled:opacity-60">Pay now</button>
+                <a href="/fund-wallet" id="topupBtn" class="hidden flex-1 py-3.5 bg-brand-red hover:bg-red-700 text-white rounded-xl text-sm font-bold text-center transition-all">Top up wallet</a>
+            </div>
         </div>
     </div>
-</div>
 
-
-  
-  <script>
+<script>
     const API_BASE_URL = '/api';
     let userBalances = { ngn: 0, bonusNGN: 0, hasDeposited: false };
+    let operators = [];            // Live Bitrefill operators, priced by the server
+    let selectedOperator = null;
+    let selectedPackage = null;
     let currentOrderData = null;
+    let lookupIds = null;          // Operators the number lookup suggested (null = show all)
 
-   const carriers = [
-    // T-Mobile Options
-    { id: 'tmobile', name: 'T-Mobile $15 (Prepaid)', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Carrier', p: 28000,  lbl: ''  },
-    { id: 'tmobile_3months', name: 'T-Mobile 3 Months Carrier eSIM', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Term Plan', p: 65000,  lbl: ''  },
-    { id: 'tmobile_6months', name: 'T-Mobile 6 Months Carrier eSIM', image: 'https://i.imgur.com/pyDMW1t.png', type: 'Term Plan', p: 115000,  lbl: ''  },
+    // --- 1. Helpers ---
+    // Operator names come from the supplier, so escape them before they go into innerHTML
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
+    const faceValue = (op, pkg) => pkg.label || pkg.value; // "$15", or the operator's own text ("2 GB 30 Days")
 
-    // AT&T Options
-    { id: 'att', name: 'AT&T $35 (Prepaid)', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Carrier', p: 58000,   lbl: '' },
-    { id: 'att_3months', name: 'AT&T 3 Months Carrier eSIM', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Term Plan', p: 95000,   lbl: '' },
-    { id: 'att_6months', name: 'AT&T 6 Months Carrier eSIM', image: 'https://i.imgur.com/WDCo1gM.png', type: 'Term Plan', p: 165000,   lbl: '' },
+    // Operator logo on its brand colour, like Bitrefill's cards (initials when there is no logo)
+    function operatorLogo(op, sizeClass) {
+        const bg = /^#[0-9a-f]{6}$/i.test(op.logoBg || '') ? op.logoBg : '#FFFFFF';
+        const initials = op.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const fallback = `<span class="font-black text-lg text-brand-blue">${escapeHtml(initials)}</span>`;
+        return `<div class="${sizeClass} flex items-center justify-center overflow-hidden" style="background:${bg}">
+            ${op.image ? `<img src="${escapeHtml(op.image)}" alt="${escapeHtml(op.name)}" loading="lazy" class="max-w-[70%] max-h-[55%] object-contain" onerror="this.remove()">` : fallback}
+        </div>`;
+    }
 
-    // General Term Plans
-    { id: '1month', name: 'One Month Carrier eSIM', image: '/assets/favicon.png', type: 'Term Plan', p: 41000,   lbl: '' },
-    { id: '3months', name: '3 Months Carrier eSIM', image: '/assets/favicon.png', type: 'Term Plan', p: 63000,   lbl: '' }
-];
+    // 10 digits, or null. A leading 1 (country code) is dropped.
+    function getPhoneDigits() {
+        let digits = document.getElementById('targetNumber').value.replace(/\D/g, '');
+        if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+        return /^[2-9]\d{2}[2-9]\d{6}$/.test(digits) ? digits : null;
+    }
+    const prettyPhone = (d) => `+1 (${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 
-async function fetchUserProfile() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/user-profile`, {
-            headers: { 
-                'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
-                'Cache-Control': 'no-cache' 
+    function formatPhoneInput(input) {
+        let d = input.value.replace(/\D/g, '');
+        if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+        d = d.slice(0, 10);
+        input.value = d.length > 6 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
+            : d.length > 3 ? `(${d.slice(0, 3)}) ${d.slice(3)}` : d;
+    }
+
+    // --- 2. Wallet ---
+    async function fetchUserProfile() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/user-profile`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`,
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (res.status === 401) return logout();
+            const data = await res.json();
+            if (res.status === 403 && data.isUnverified) {
+                window.location.href = `/register?verify_email=${encodeURIComponent(data.email || '')}`;
+                return false;
             }
-        });
-        if (res.status === 401) {
-            return logout(); 
+            if (data.success) {
+                const userData = data.user || data;
+                userBalances.ngn = userData.balance || 0;
+                userBalances.bonusNGN = userData.bonusBalance || 0;
+                userBalances.hasDeposited = userData.hasDeposited === true;
+                document.getElementById('displayBalance').innerText = formatNaira(userBalances.ngn);
+                return true;
+            }
+        } catch (err) {
+            console.error("Failed to fetch profile details:", err);
         }
-        const data = await res.json();
-        if (res.status === 403 && data.isUnverified) {
-            console.warn("User is unverified. Redirecting to verification...");
-            window.location.href = `/register?verify_email=${encodeURIComponent(data.email || '')}`;
-            return;
-        }
-if (data.success) {
-    const userData = data.user || data;
-    userBalances.ngn = userData.balance || 0; 
-    userBalances.bonusNGN = userData.bonusBalance || 0; 
-    
-    // Update Displays
-    const elBal = document.getElementById('displayBalance');
-    const elBonus = document.getElementById('displayBonus');
-    if (elBal) elBal.innerText = `₦${userBalances.ngn.toLocaleString()}`;
-    if (elBonus) elBonus.innerText = `₦${userBalances.bonusNGN.toLocaleString()}`;
-}
-    } catch (err) {
-        console.error("Failed to fetch profile details:", err);
+        return false;
     }
-}
 
-async function loadUserData() {
-    const success = await fetchUserProfile();
-    if (success) {
-        const balDisplay = document.getElementById('walletBalanceDisplay');
-        if (balDisplay) {
-            // Ensure we use the mapped 'ngn' property
-            balDisplay.innerText = `₦${userBalances.ngn.toLocaleString()}`;
-        }
-    }
-}
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('-translate-x-full');
         document.getElementById('sidebarOverlay').classList.toggle('hidden');
     }
 
-   function initPage() {
-    const grid = document.getElementById('carrierGrid');
-    if (grid) {
-        grid.innerHTML = carriers.map(c => `
-            <div onclick="selectCarrier('${c.id}')" class="bg-white border border-brand-border p-4 md:p-6 rounded-2xl md:rounded-3xl cursor-pointer hover:shadow-xl transition-all group text-center relative overflow-hidden">
-                <span class="absolute top-2 right-2 bg-brand-blue text-white text-[7px] font-bold px-2 py-0.5 rounded-full uppercase">${c.type}</span>
-                <div class="h-12 md:h-16 mb-3 flex items-center justify-center transition-all">
-                    <img src="${c.image}" class="max-h-full object-contain group-hover:scale-105 transition-transform">
-                </div>
-                <h3 class="text-[9px] md:text-[10px] font-bold text-brand-darkText uppercase group-hover:text-brand-blue leading-tight">${c.name}</h3>
-            </div>
-        `).join('');
-    }    
-    const selector = document.getElementById('planSelector');
-    if (selector) selector.innerHTML = '<option value="" disabled selected>Select Carrier First</option>';
-}
-function selectCarrier(id) {
-    const carrier = carriers.find(c => c.id === id);
-    if (!carrier) return;
-    window.currentSelectedCarrier = carrier; 
-    
-    document.getElementById('selectionView')?.classList.add('hidden');
-    document.getElementById('formView')?.classList.remove('hidden');        
-    
-    if(document.getElementById('formCarrierName')) document.getElementById('formCarrierName').innerText = carrier.name;
-    if(document.getElementById('formCarrierLogo')) document.getElementById('formCarrierLogo').src = carrier.image;
-    
-    const selector = document.getElementById('planSelector');
-    if (selector) {
-        // Dynamically determine the refill/term label based on ID or type
-        let durationLabel = "Monthly Refill";
-        if (carrier.id.includes('3months') || carrier.name.toLowerCase().includes('3 months')) {
-            durationLabel = "3 Months Plan";
-        } else if (carrier.id.includes('6months') || carrier.name.toLowerCase().includes('6 months')) {
-            durationLabel = "6 Months Plan";
-        } else if (carrier.type === 'Term Plan' && carrier.name.toLowerCase().includes('one month')) {
-            durationLabel = "Monthly Refill";
+    // --- 3. Operators ---
+    async function loadOperators() {
+        const grid = document.getElementById('carrierGrid');
+        try {
+            const res = await fetch(`${API_BASE_URL}/phone-refill-products`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            operators = data.products || [];
+            renderOperators();
+        } catch (err) {
+            console.error("Operator load error:", err);
+            grid.innerHTML = `
+                <div class="col-span-full py-16 text-center">
+                    <p class="text-xs text-brand-lightText mb-3">${escapeHtml(err.message || "Could not load operators.")}</p>
+                    <button onclick="loadOperators()" class="px-4 py-2 bg-brand-blue text-white rounded-xl text-xs font-bold hover:bg-blue-700">Try Again</button>
+                </div>`;
+        }
+    }
+
+    function renderOperators() {
+        const grid = document.getElementById('carrierGrid');
+        const term = document.getElementById('operatorSearch').value.trim().toLowerCase();
+        const list = operators.filter(op => op.name.toLowerCase().includes(term) && (!lookupIds || lookupIds.includes(op.id)));
+
+        if (list.length === 0) {
+            grid.innerHTML = `<div class="col-span-full py-16 text-center text-xs text-brand-lightText">${operators.length ? 'No operator matches your search.' : 'No operators are available right now.'}</div>`;
+            return;
         }
 
-        const formattedPrice = `₦${carrier.p.toLocaleString()}.00 ${carrier.lbl} ${durationLabel}`.trim();
-        selector.innerHTML = `<option value="${formattedPrice}">${formattedPrice}</option>`;        
-        
+        grid.innerHTML = list.map(op => {
+            const fromPrice = Math.min(...op.packages.map(p => p.price));
+            return `
+                <div onclick="selectOperator(${operators.indexOf(op)})" class="relative transition-all group ${op.inStock ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}">
+                    ${op.inStock ? '' : '<span class="absolute top-2 left-2 z-10 bg-brand-orange text-white text-[8px] font-bold px-2 py-0.5 rounded-md uppercase">Out of stock</span>'}
+                    ${operatorLogo(op, `w-full aspect-[16/10] rounded-xl md:rounded-2xl border border-brand-border transition-all ${op.inStock ? 'group-hover:shadow-xl group-hover:-translate-y-0.5' : ''}`)}
+                    <h3 class="mt-2 text-[13px] md:text-sm font-semibold text-brand-darkText group-hover:text-brand-blue leading-tight">${escapeHtml(op.name)}</h3>
+                    <p class="text-xs text-brand-lightText mt-0.5">From <span class="font-semibold text-brand-blue">${formatNaira(fromPrice)}</span></p>
+                </div>`;
+        }).join('');
+    }
+
+    /**
+     * Number Lookup: Bitrefill finds the operator. One sure match opens it with the number filled in;
+     * a shortlist narrows the grid; no match leaves the full grid and keeps the number for the form.
+     */
+    async function lookupNumber(e) {
+        e.preventDefault();
+        const input = document.getElementById('lookupNumber');
+        const result = document.getElementById('lookupResult');
+        let digits = input.value.replace(/\D/g, '');
+        if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+        const showResult = (html) => { result.innerHTML = html; result.classList.remove('hidden'); };
+        if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) return showResult("Enter a valid 10-digit US phone number.");
+
+        const btn = document.getElementById('lookupBtn');
+        btn.disabled = true;
+        btn.innerText = "Finding...";
+        showResult("Checking the network. This can take up to 20 seconds...");
+        try {
+            const res = await fetch(`${API_BASE_URL}/phone-refill-lookup?phone=${encodeURIComponent('+1' + digits)}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+            });
+            if (res.status === 401) return logout();
+            const data = await res.json().catch(() => ({ success: false })); // A server timeout has no JSON body
+            if (!data.success) throw new Error(data.message || "Could not check that number. Pick your operator below.");
+
+            // The number goes into the top-up form whichever operator is picked
+            const targetInput = document.getElementById('targetNumber');
+            targetInput.value = digits;
+            formatPhoneInput(targetInput);
+            document.getElementById('operatorSearch').value = '';
+
+            const ids = data.operatorIds || [];
+            const matchIndex = data.exact ? operators.findIndex(op => op.id === ids[0]) : -1;
+            if (matchIndex !== -1 && operators[matchIndex].inStock) {
+                lookupIds = null;
+                result.classList.add('hidden');
+                renderOperators();
+                selectOperator(matchIndex);
+                return;
+            }
+            lookupIds = ids.length ? ids : null;
+            renderOperators();
+            showResult(ids.length
+                ? `This number could be on one of these operators. Pick yours below. <button type="button" onclick="clearLookup()" class="underline font-bold">Show all</button>`
+                : "We couldn't tell the operator for this number. Pick it below.");
+        } catch (err) {
+            console.error("Number lookup error:", err);
+            showResult(escapeHtml(err.message || "Could not check that number. Pick your operator below."));
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Find";
+        }
+    }
+
+    function clearLookup() {
+        lookupIds = null;
+        document.getElementById('lookupResult').classList.add('hidden');
+        renderOperators();
+    }
+
+    function selectOperator(index) {
+        const op = operators[index];
+        if (!op || !op.inStock) return;
+        selectedOperator = op;
+        selectedPackage = null;
+
+        document.getElementById('formCarrierLogo').innerHTML = operatorLogo(op, 'w-full h-full rounded-xl md:rounded-2xl');
+        document.getElementById('formCarrierName').innerText = op.name;
+        document.getElementById('formOperatorHint').innerText = op.name;
+
+        // PIN products need no number: the customer gets a code to load themselves
+        const isPin = op.delivery === 'pin';
+        document.getElementById('phoneSection').classList.toggle('hidden', isPin);
+        document.getElementById('pinNotice').classList.toggle('hidden', !isPin);
+        document.getElementById('pinOperatorHint').innerText = op.name.replace(/\s*pin(less)?$/i, '');
+        document.getElementById('formDeliveryLabel').innerText = isPin ? 'PIN Delivered Instantly' : 'Instant Top-up';
+        document.getElementById('amountLabel').innerText = isPin ? 'PIN Amount' : 'Top-up Amount';
+        document.getElementById('amountStepNo').innerText = isPin ? '1' : '2'; // PINs skip the number step
+        renderAmounts();
+        updatePayButton();
+
+        document.getElementById('selectionView').classList.add('hidden');
+        document.getElementById('formView').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderAmounts() {
+        document.getElementById('amountGrid').innerHTML = selectedOperator.packages.map((pkg, index) => {
+            const isActive = selectedPackage?.id === pkg.id;
+            return `
+                <button type="button" onclick="selectPackage(${index})" class="p-3 rounded-xl border-2 text-center transition-all ${isActive ? 'border-brand-blue bg-brand-background' : 'border-brand-border bg-white hover:border-brand-blue'}">
+                    <span class="block text-[15px] font-bold text-brand-darkText leading-tight">${escapeHtml(faceValue(selectedOperator, pkg))}</span>
+                    <span class="block text-xs font-semibold text-brand-blue mt-0.5">${formatNaira(pkg.price)}</span>
+                </button>`;
+        }).join('');
+    }
+
+    function selectPackage(index) {
+        selectedPackage = selectedOperator.packages[index] || null;
+        renderAmounts();
+        updatePayButton();
+    }
+
+    function updatePayButton() {
         const payBtn = document.getElementById('payBtn');
-        if (payBtn) payBtn.innerText = `Proceed with ${formattedPrice}`;
+        payBtn.disabled = !selectedPackage;
+        payBtn.innerText = selectedPackage
+            ? `Pay ${formatNaira(selectedPackage.price)} for ${faceValue(selectedOperator, selectedPackage)}`
+            : 'Select an Amount';
     }
-}
-
-function updateButtonPrice() {
-        const plan = document.getElementById('planSelector').value;
-        document.getElementById('payBtn').innerText = `Pay for ${plan} Refill`;
-    }
-
-    document.getElementById('planSelector').addEventListener('change', updateButtonPrice);
 
     function goBackToGrid() {
         document.getElementById('selectionView').classList.remove('hidden');
         document.getElementById('formView').classList.add('hidden');
     }
 
-  async function initiatePayment() {
-    const num = document.getElementById('targetNumber').value.trim();
-    const planString = document.getElementById('planSelector').value; 
-    const carrier = window.currentSelectedCarrier;
-    const payBtn = document.getElementById('payBtn');    
-    const confirmBtn = document.getElementById('confirmPurchaseBtn');
-    const topupBtn = document.getElementById('topupBtn');
+    // --- 4. Payment ---
+    async function initiatePayment() {
+        if (!selectedOperator || !selectedPackage) return;
+        const isPin = selectedOperator.delivery === 'pin';
+        const digits = isPin ? null : getPhoneDigits();
+        if (!isPin && !digits) { alert("Enter a valid 10-digit US phone number."); return; }
 
-    if (!num) { alert("Please enter the eSIM mobile number"); return; }
-    if (!carrier) return;
+        const payBtn = document.getElementById('payBtn');
+        payBtn.innerText = "Checking Wallet...";
+        payBtn.disabled = true;
+        await fetchUserProfile();
+        updatePayButton();
 
-    payBtn.innerText = "Checking Wallet...";
-    payBtn.disabled = true;
-    
-    await loadUserData(); 
-    
-    payBtn.innerText = `Pay for ${planString} (Wallet)`;
-    payBtn.disabled = false;
+        document.getElementById('modalOperator').innerText = selectedOperator.name;
+        document.getElementById('modalLogo').innerHTML = operatorLogo(selectedOperator, 'w-full h-full rounded-lg border border-brand-border');
+        document.getElementById('modalNumberLabel').innerText = isPin ? 'Delivery' : 'Number';
+        document.getElementById('modalNumber').innerText = isPin ? 'PIN code on screen' : prettyPhone(digits);
+        document.getElementById('modalFaceValue').innerText = faceValue(selectedOperator, selectedPackage);
+        document.getElementById('modalBalanceNGN').innerText = formatNaira(userBalances.ngn);
+        document.getElementById('modalTotalDue').innerText = formatNaira(selectedPackage.price);
 
-    const mainBal = Number(userBalances.ngn || 0);
-    const bonusBal = Number(userBalances.bonusNGN || 0);
-    const totalAvailable = mainBal + bonusBal;
+        // Bonus balance only unlocks after the user's own first bank transfer top-up
+        const bonusSection = document.getElementById('esimBonusSection');
+        const canUseBonus = userBalances.bonusNGN > 0 && userBalances.hasDeposited;
+        bonusSection.classList.toggle('hidden', !canUseBonus);
+        document.getElementById('modalBonusBalanceNGN').innerText = formatNaira(userBalances.bonusNGN);
+        document.getElementById('esimUseBonusToggle').checked = canUseBonus;
 
-    // FIX APPLIED HERE:
-    const planPrice = Number(planString.split(' ')[0].replace(/[^0-9.]/g, ""));
-
-    // Update the Modal UI
-    document.getElementById('modalBalanceNGN').innerText = `₦${mainBal.toLocaleString()}`;
-    document.getElementById('modalTotalDue').innerText = planString;
-    
-    // Show/Hide Bonus Section
-    const bonusSection = document.getElementById('esimBonusSection');
-    if (bonusBal > 0) {
-        bonusSection.classList.remove('hidden');
-        document.getElementById('modalBonusBalanceNGN').innerText = `₦${bonusBal.toLocaleString()}`;
-    } else {
-        bonusSection.classList.add('hidden');
+        updateModalFunds();
+        document.getElementById('paymentModal').classList.remove('hidden');
     }
 
-    // Toggle Logic
-    if (totalAvailable < planPrice) {
-        confirmBtn.classList.add('hidden');
-        topupBtn.classList.remove('hidden');
-    } else {
-        confirmBtn.classList.remove('hidden');
-        topupBtn.classList.add('hidden');
-        confirmBtn.innerText = "Confirm & Pay Now";
+    function updateModalFunds() {
+        const useBonus = document.getElementById('esimUseBonusToggle').checked && userBalances.hasDeposited;
+        const available = userBalances.ngn + (useBonus ? userBalances.bonusNGN : 0);
+        const hasEnough = available >= selectedPackage.price;
+        const confirmBtn = document.getElementById('confirmPurchaseBtn');
+        confirmBtn.classList.toggle('hidden', !hasEnough);
+        document.getElementById('topupBtn').classList.toggle('hidden', hasEnough);
         confirmBtn.disabled = false;
+        confirmBtn.innerText = "Confirm & Pay Now";
     }
 
-    document.getElementById('paymentModal').classList.remove('hidden');
-}
+    async function purchaseRefill() {
+        const confirmBtn = document.getElementById('confirmPurchaseBtn');
+        const isPin = selectedOperator?.delivery === 'pin';
+        const digits = isPin ? null : getPhoneDigits();
+        if ((!isPin && !digits) || !selectedOperator || !selectedPackage || confirmBtn.disabled) return;
 
-  async function purchaseEsimWithWallet() {
-    const confirmBtn = document.getElementById('confirmPurchaseBtn');
-    const country = document.getElementById('coverageCountry').value.trim();
-    const num = document.getElementById('targetNumber').value.trim();
-    const planRaw = document.getElementById('planSelector').value; 
-    const carrier = window.currentSelectedCarrier;
-    const useBonus = document.getElementById('esimUseBonusToggle')?.checked || false;
+        confirmBtn.disabled = true;
+        confirmBtn.innerText = "Processing...";
 
-    // 1. Data Sanitization: Convert "₦30,000.00 One Month..." into 30000
-    // We split by space to get the price part, then remove currency symbols and commas.
-    const cleanAmount = Number(planRaw.split(' ')[0].replace(/[^0-9.]/g, ""));
+        try {
+            const res = await fetch(`${API_BASE_URL}/purchase-with-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+                },
+                body: JSON.stringify({
+                    refillProductId: selectedOperator.id,
+                    refillPackageId: selectedPackage.id,
+                    ...(digits ? { mobileNumber: `+1${digits}` } : {}),
+                    useBonus: document.getElementById('esimUseBonusToggle').checked && userBalances.hasDeposited
+                })
+            });
+            if (res.status === 401) return logout();
+            const data = await res.json();
 
-    // 2. Validation Checks
-    if (!country) { 
-        alert("Please enter the coverage country."); 
-        return; 
-    }
-    if (!num) { 
-        alert("Please enter the eSIM mobile number."); 
-        return; 
-    }
-    if (!carrier) {
-        alert("Carrier selection missing. Please go back and select a carrier.");
-        return;
-    }
-
-    // Prevent double submissions
-    if (confirmBtn.disabled) return;
-    
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = `
-        <span class="flex items-center justify-center gap-2">
-            <svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Processing Refill...
-        </span>`;
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/purchase-with-wallet`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
-            },
-            body: JSON.stringify({
-                productType: 'eSIM_Refill',
-                carrierId: carrier.id,
-                carrierName: carrier.name,
-                coverageCountry: country,
-                mobileNumber: num,
-                planAmount: cleanAmount, // Now sending the clean number (e.g., 30000)
-                useBonus: useBonus,
-                productImage: carrier.image
-            })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            document.getElementById('paymentModal').classList.add('hidden');
-            showReceipt(data.order);
-            await loadUserData(); // Refresh the balance
-        } else {
-            alert(data.message || "Purchase failed");
+            if (data.success) {
+                document.getElementById('paymentModal').classList.add('hidden');
+                showReceipt(data.order);
+                fetchUserProfile(); // Refresh the balance
+            } else {
+                alert(data.message || "Top-up failed. You have not been charged.");
+            }
+        } catch (err) {
+            console.error("Network Error:", err);
+            alert("Connection lost. Please check your order history before trying again.");
+        } finally {
             confirmBtn.disabled = false;
             confirmBtn.innerText = "Confirm & Pay Now";
         }
-    } catch (err) {
-        console.error("Network Error:", err);
-        alert("Connection lost. Please check your transaction history.");
-        confirmBtn.disabled = false;
-        confirmBtn.innerText = "Confirm & Pay Now";
     }
-}
 
-function showReceipt(order) {
-    currentOrderData = order;
+    // --- 5. Receipt ---
+    const RECEIPT_STATES = {
+        completed: { title: 'Top-up Sent', label: 'Delivered', color: 'text-green-600', badge: 'bg-green-50 text-green-600', note: 'The credit has been added to the number.' },
+        pending: { title: 'Top-up Processing', label: 'Processing', color: 'text-orange-600 animate-pulse', badge: 'bg-orange-50 text-orange-500', note: "The operator is still confirming. This usually takes a few minutes. You'll get an email when it lands." },
+        failed: { title: 'Top-up Failed', label: 'Failed · Refunded', color: 'text-red-600', badge: 'bg-red-50 text-red-500', note: 'The operator rejected this top-up. Your wallet has been refunded.' }
+    };
 
-    document.getElementById('selectionView').classList.add('hidden');
-    document.getElementById('formView').classList.add('hidden');
-    document.getElementById('paymentModal').classList.add('hidden');
+    // PIN orders reuse the receipt with their own wording
+    const PIN_RECEIPT_STATES = {
+        completed: { title: 'PIN Delivered', note: "Load the PIN on your phone as your operator explains. It's also in your email and Order History." },
+        pending: { title: 'PIN Processing', note: "Your PIN is on its way. Tap Check Status in a minute. You'll also get it by email." },
+        failed: { title: 'PIN Failed', note: 'This PIN could not be issued. Your wallet has been refunded.' }
+    };
 
-    if (document.getElementById('rID')) 
+    function showReceipt(order) {
+        currentOrderData = order;
+        const isPin = order.metadata?.delivery === 'pin';
+        const state = { ...(RECEIPT_STATES[order.status] || RECEIPT_STATES.pending), ...(isPin ? PIN_RECEIPT_STATES[order.status] || {} : {}) };
+
+        document.getElementById('rNumberRow').classList.toggle('hidden', isPin);
+        document.getElementById('rPinBox').classList.toggle('hidden', !(isPin && order.activationCode));
+        document.getElementById('rPin').innerText = order.activationCode || '';
+        const pinDetails = document.getElementById('rPinDetails');
+        pinDetails.innerText = order.metadata?.pinDetails || '';
+        pinDetails.classList.toggle('hidden', !order.metadata?.pinDetails);
+
+        document.getElementById('selectionView').classList.add('hidden');
+        document.getElementById('formView').classList.add('hidden');
+        document.getElementById('receiptView').classList.remove('hidden');
+
+        document.getElementById('rTitle').innerText = state.title;
+        document.getElementById('rBadge').className = `w-14 h-14 mx-auto rounded-full ${state.badge} flex items-center justify-center`;
         document.getElementById('rID').innerText = order.paymentReference || 'N/A';
-    if (document.getElementById('rCarrier')) 
-        document.getElementById('rCarrier').innerText = order.carrier?.name || order.nodeName || 'eSIM';
-    if (document.getElementById('rNumber')) 
-        document.getElementById('rNumber').innerText = order.target?.number || order.targetNumber || 'N/A';
-    if (document.getElementById('rPlan')) 
-        document.getElementById('rPlan').innerText = order.planName || `₦${order.amount?.toLocaleString()}`;
-    if (document.getElementById('rCountry')) 
-        document.getElementById('rCountry').innerText = order.target?.country || order.country || 'N/A';
-    if (document.getElementById('rMainUsed'))
-        document.getElementById('rMainUsed').innerText = `₦${(order.mainBalanceUsed || 0).toLocaleString()}`;
-    if (document.getElementById('rBonusUsed'))
-        document.getElementById('rBonusUsed').innerText = `₦${(order.bonusBalanceUsed || 0).toLocaleString()}`;
-    if (document.getElementById('rEmail'))
-        document.getElementById('rEmail').innerText = order.userEmail || 'N/A';
-    
-    if (document.getElementById('rFullName'))
-        document.getElementById('rFullName').innerText = order.fullName || 'Customer';
-    const receiptView = document.getElementById('receiptView');
-    if (receiptView) {
-        receiptView.classList.remove('hidden');
+        document.getElementById('rCarrier').innerText = order.carrier?.name || order.nodeName || '--';
+        document.getElementById('rNumber').innerText = order.targetNumber || order.target?.number || '--';
+        document.getElementById('rPlan').innerText = order.planName || '--';
+        document.getElementById('rAmount').innerText = formatNaira(order.amount);
+        document.getElementById('rStatus').className = `font-bold ${state.color}`;
+        document.getElementById('rStatus').innerText = state.label;
+        document.getElementById('rNote').innerText = state.note;
+
+        const hasConfirmation = order.status === 'completed' && order.confirmationNumber;
+        document.getElementById('rConfirmRow').classList.toggle('hidden', !hasConfirmation);
+        document.getElementById('rConfirm').innerText = order.confirmationNumber || '';
+        document.getElementById('checkStatusBtn').classList.toggle('hidden', order.status !== 'pending');
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
 
-  function contactManagement() {
-    const order = currentOrderData || {};
-    const tid = order.paymentReference || document.getElementById('rID')?.innerText || "N/A";
-    const carrier = order.carrier?.name || order.nodeName || document.getElementById('rCarrier')?.innerText || "N/A";
-    const country = order.target?.country || order.country || document.getElementById('rCountry')?.innerText || "N/A";
-    const number = order.target?.number || order.targetNumber || document.getElementById('rNumber')?.innerText || "N/A";
-    const plan = order.planName || (order.amount ? `₦${order.amount.toLocaleString()}` : document.getElementById('rPlan')?.innerText || "N/A");
-    const fullName = order.fullName || document.getElementById('rFullName')?.innerText || "Customer";
-    const userEmail = order.userEmail || document.getElementById('rEmail')?.innerText || "N/A";
-    const mainUsed = order.mainBalanceUsed || 0;
-    const bonusUsed = order.bonusBalanceUsed || 0;    
-    const paymentMethod = bonusUsed > 0 
-        ? `Split (Main: ₦${mainUsed.toLocaleString()} | Bonus: ₦${bonusUsed.toLocaleString()})` 
-        : `Main Wallet (₦${mainUsed.toLocaleString()})`;
-
-    const timeSent = new Date().toLocaleString('en-NG', { 
-        dateStyle: 'medium', 
-        timeStyle: 'short' 
-    });
-
-    // 4. Construct the high-design message
-    const msg = `📱 *DeemaxHub: NEW eSIM REFILL REQUEST*\n` +
-                `📅 *DATE:* ${timeSent}\n` +
-                `__________________________________\n\n` +
-                `✅ *PAYMENT STATUS:* CONFIRMED\n` +
-                `🆔 *REF ID:* ${tid}\n` +
-                `💰 *TOTAL AMOUNT:* ${plan}\n` + 
-                `💳 *PAYMENT DETAIL:* ${paymentMethod}\n` +
-                `👤 *CUSTOMER:* ${fullName}\n` +
-                `📧 *EMAIL:* ${userEmail}\n\n` +
-                `*REFILL DETAILS:*\n` +
-                `━━━━━━━━━━━━━━━━━━\n` +
-                `📶 *CARRIER:* ${carrier}\n` +
-                `🌍 *COUNTRY:* ${country}\n` +
-                `🔢 *TARGET NO:* ${number}\n` +
-                `━━━━━━━━━━━━━━━━━━\n\n` +
-                `*DeemaxHub:* Customer has paid. Please process and update confirmation ID.`;
-
-    // 5. Open WhatsApp
-    const whatsappUrl = `https://wa.me/2347059450227?text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank');
-}
-
-function closePaymentModal() {
-    const modal = document.getElementById('paymentModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }    
-    const payBtn = document.getElementById('payBtn');
-    if (payBtn) {
-        const plan = document.getElementById('planSelector').value;
-        payBtn.innerText = `Pay for ${plan} Refill`;
-        payBtn.disabled = false;
+    async function checkRefillStatus() {
+        if (!currentOrderData?._id) return;
+        const btn = document.getElementById('checkStatusBtn');
+        btn.disabled = true;
+        btn.innerText = "Checking...";
+        try {
+            const res = await fetch(`${API_BASE_URL}/order-details?id=${encodeURIComponent(currentOrderData._id)}`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+            });
+            if (res.status === 401) return logout();
+            const data = await res.json();
+            if (data.success && data.order) {
+                showReceipt(data.order);
+                if (data.order.status === 'pending') btn.innerText = "Still Processing · Check Again";
+                if (data.order.status === 'failed') fetchUserProfile();
+            }
+        } catch (err) {
+            console.error("Status check error:", err);
+        } finally {
+            btn.disabled = false;
+            if (btn.innerText === "Checking...") btn.innerText = "Check Status";
+        }
     }
-}
 
+    function copyPin() {
+        const pin = currentOrderData?.activationCode;
+        if (!pin) return;
+        navigator.clipboard.writeText(pin).then(() => {
+            const btn = document.getElementById('copyPinBtn');
+            btn.innerText = 'Copied!';
+            setTimeout(() => { btn.innerText = 'Copy PIN'; }, 1500);
+        }).catch(() => alert(`Your PIN: ${pin}`));
+    }
 
-    
-function closeReceipt() {
-    document.getElementById('receiptModal').classList.add('hidden');
-    document.getElementById('receiptModal').classList.remove('flex');
-    // Go back to the grid view for a fresh start
-    goBackToGrid();
-}
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+        updatePayButton();
+    }
 
     function logout() {
         localStorage.removeItem('userToken');
@@ -683,10 +769,10 @@ function closeReceipt() {
     }
 
     window.onload = async () => {
-        initPage(); 
-        await loadUserData();
+        if (!localStorage.getItem('userToken')) return logout();
+        loadOperators();
+        await fetchUserProfile();
     };
-
 </script>
 </body>
 </html>

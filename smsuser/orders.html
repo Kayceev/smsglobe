@@ -825,9 +825,14 @@
             }
             else if (order.productType === 'eSIM_Refill' || order.productType === 'eSIM_Activation') {
                 addRow('Network', order.nodeName);
-                addRow('Phone Number', order.targetNumber);
+                if (order.targetNumber) addRow('Phone Number', order.targetNumber);
                 addRow('Country', order.country);
                 addRow('Refill Value', order.planName);
+                // PIN products: the code to load, plus Bitrefill's loading instructions
+                if (order.metadata?.delivery === 'pin') {
+                    addRow('PIN', order.activationCode || 'Pending');
+                    if (order.metadata?.pinDetails) addRow('How to Load', order.metadata.pinDetails);
+                }
             }
             else if (order.productType === 'RDP') {
                 addRow('Server Location', order.nodeName);
@@ -849,7 +854,7 @@
                 accountKeys.forEach((key, i) => addRow(`Account #${i + 1}`, key));
             }
 
-            if (order.activationCode && order.productType !== 'Account') addRow('Activation Code', order.activationCode);
+            if (order.activationCode && order.productType !== 'Account' && order.metadata?.delivery !== 'pin') addRow('Activation Code', order.activationCode);
             addRow('Date', formatDateTime(order.createdAt));
             if (order.adminNote) {
                 dynamicHtml += `

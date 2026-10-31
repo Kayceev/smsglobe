@@ -24,7 +24,7 @@
         const url = new URL(link.href, location.href);
         if (url.origin === location.origin && url.pathname === location.pathname) return;
         e.preventDefault();
-        // Admins top up from the Users page, not Flutterwave
+        // Admins top up from the Users page, not by bank transfer
         if (url.origin === location.origin && url.pathname === '/fund-wallet') {
             window.parent.postMessage({ type: 'user-view:add-money' }, location.origin);
             return;

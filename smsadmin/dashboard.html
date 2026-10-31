@@ -189,6 +189,7 @@
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 <div id="smsBowerTile"></div>
                 <div id="sameehaTile"></div>
+                <div id="bitrefillTile"></div>
             </div>
         </div>
         <div>
@@ -487,6 +488,24 @@
         }
     }
 
+    async function loadBitrefillBalance() {
+        const slot = document.getElementById('bitrefillTile');
+        slot.innerHTML = tile({ label: 'Bitrefill balance (US top-ups)', value: LOADING_VALUE, icon: 'server', tone: 'violet' });
+        try {
+            const data = await adminGet('bitrefill-balance');
+            slot.innerHTML = tile({
+                label: 'Bitrefill balance (US top-ups)',
+                value: data.success ? usd(data.balanceUsd) : UNAVAILABLE_VALUE,
+                icon: 'server', tone: 'violet',
+                today: data.success ? `≈ ${naira(data.balanceNGN)}` : null,
+                todayTitle: data.success && data.estimated ? 'Worked out from Bitrefill invoices (its API only reports the BTC balance)' : 'At the current USD rate',
+                sub: data.success ? null : data.message
+            });
+        } catch (err) {
+            slot.innerHTML = tile({ label: 'Bitrefill balance (US top-ups)', value: UNAVAILABLE_VALUE, icon: 'server', tone: 'violet' });
+        }
+    }
+
     function formatMonth(yyyymm) {
         const [y, m] = String(yyyymm).split('-').map(Number);
         return y && m ? new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }) : yyyymm;
@@ -537,6 +556,7 @@
         loadOverview();
         loadSmsBowerBalance();
         loadSameehaBalance();
+        loadBitrefillBalance();
     });
 
 
