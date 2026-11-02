@@ -15,6 +15,98 @@
     <meta property="og:image" content="https://www.deemaxhub.com/assets/logo.png">
     <meta property="twitter:card" content="summary_large_image">
 
+    <!-- Structured Data (JSON-LD for search engines; keep it in step with what the page actually sells) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://www.deemaxhub.com/#organization",
+                "name": "DeemaxHub",
+                "legalName": "Deemax Hub",
+                "url": "https://www.deemaxhub.com/",
+                "logo": "https://www.deemaxhub.com/assets/logo.png",
+                "description": "DeemaxHub is a Nigerian digital services store: virtual phone numbers for SMS verification codes, ready social media accounts, VPN keys, proxies, eSIMs, US phone top-ups, cloud RDP and gift delivery, all paid from one naira wallet funded by bank transfer.",
+                "contactPoint": {
+                    "@type": "ContactPoint",
+                    "contactType": "customer support",
+                    "telephone": "+2347059450227",
+                    "url": "https://wa.me/2347059450227",
+                    "availableLanguage": "English"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://www.deemaxhub.com/#website",
+                "url": "https://www.deemaxhub.com/",
+                "name": "DeemaxHub",
+                "inLanguage": "en-NG",
+                "publisher": { "@id": "https://www.deemaxhub.com/#organization" }
+            },
+            {
+                "@type": "Service",
+                "@id": "https://www.deemaxhub.com/#sms-numbers",
+                "name": "Virtual Numbers for SMS Verification",
+                "url": "https://www.deemaxhub.com/virtual-numbers",
+                "provider": { "@id": "https://www.deemaxhub.com/#organization" },
+                "serviceType": "Virtual phone numbers for SMS verification codes",
+                "description": "Temporary virtual phone numbers from many countries to receive one-time SMS verification codes for WhatsApp, Telegram, Google, Facebook, TikTok, Instagram and other apps. The code shows on your dashboard, and numbers that receive no code are refunded to your wallet.",
+                "areaServed": { "@type": "Country", "name": "Nigeria" },
+                "hasOfferCatalog": {
+                    "@type": "OfferCatalog",
+                    "name": "Supported apps",
+                    "itemListElement": [
+                        { "@type": "Offer", "priceCurrency": "NGN", "itemOffered": { "@type": "Service", "name": "WhatsApp verification number" } },
+                        { "@type": "Offer", "priceCurrency": "NGN", "itemOffered": { "@type": "Service", "name": "Telegram verification number" } },
+                        { "@type": "Offer", "priceCurrency": "NGN", "itemOffered": { "@type": "Service", "name": "Google and YouTube verification number" } },
+                        { "@type": "Offer", "priceCurrency": "NGN", "itemOffered": { "@type": "Service", "name": "Social media verification numbers (Facebook, Instagram, TikTok, X, Tinder)" } }
+                    ]
+                }
+            },
+            {
+                "@type": "Service",
+                "@id": "https://www.deemaxhub.com/#accounts",
+                "name": "Social Media Accounts and VPN Keys",
+                "url": "https://www.deemaxhub.com/accounts",
+                "provider": { "@id": "https://www.deemaxhub.com/#organization" },
+                "serviceType": "Digital accounts",
+                "description": "Ready social media accounts and VPN keys, delivered to your order history as soon as you pay from your wallet.",
+                "areaServed": { "@type": "Country", "name": "Nigeria" }
+            },
+            {
+                "@type": "Service",
+                "@id": "https://www.deemaxhub.com/#esim",
+                "name": "eSIM Activation and US Phone Top-ups",
+                "url": "https://www.deemaxhub.com/esim-refill",
+                "provider": { "@id": "https://www.deemaxhub.com/#organization" },
+                "serviceType": "Mobile connectivity",
+                "description": "US eSIM activation and instant prepaid top-ups for US carriers such as T-Mobile, AT&T and Verizon, paid in naira.",
+                "areaServed": { "@type": "Country", "name": "Nigeria" }
+            },
+            {
+                "@type": "Service",
+                "@id": "https://www.deemaxhub.com/#rdp",
+                "name": "Cloud RDP",
+                "url": "https://www.deemaxhub.com/rdp",
+                "provider": { "@id": "https://www.deemaxhub.com/#organization" },
+                "serviceType": "Remote desktop hosting",
+                "description": "Windows cloud remote desktop (RDP) servers, set up for you with the login details sent to your email.",
+                "areaServed": { "@type": "Country", "name": "Nigeria" }
+            },
+            {
+                "@type": "Service",
+                "@id": "https://www.deemaxhub.com/#gifts",
+                "name": "Gift Delivery",
+                "url": "https://www.deemaxhub.com/gifts",
+                "provider": { "@id": "https://www.deemaxhub.com/#organization" },
+                "serviceType": "Gift delivery",
+                "description": "Order gifts such as flowers, cakes and rings for delivery to someone you choose. Our team confirms each order on WhatsApp."
+            }
+        ]
+    }
+    </script>
+
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
     <link rel="apple-touch-icon" href="/assets/favicon.png">
