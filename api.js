@@ -321,13 +321,14 @@ function isRefillDemoMode() {
 }
 const REFILL_DEMO_DELAY_MS = 25000;
 const REFILL_DEMO_PRODUCTS = [
-    { id: 't-mobile-usa', name: 'T-Mobile', image: 'https://i.imgur.com/pyDMW1t.png', values: [10, 15, 25, 30, 40, 50] },
+    { id: 't-mobile-usa', name: 'T-Mobile', image: 'https://i.imgur.com/pyDMW1t.png', values: [10, 15, 25, 30, 40, 50], range: [1, 200, 1] },
     { id: 'at-t-usa', name: 'AT&T', image: 'https://i.imgur.com/WDCo1gM.png', values: [15, 25, 35, 50] },
     { id: 'verizon-usa', name: 'Verizon', values: [15, 30, 40, 50] },
     { id: 'lyca-mobile-usa', name: 'Lyca Mobile', values: [19, 23, 29] },
     { id: 'ultra-mobile-usa', name: 'Ultra Mobile', values: [19, 29, 49] },
     { id: 'h2o-wireless-usa', name: 'H2O Wireless', values: [20, 30], inStock: false },
-    { id: 't-mobile-pin-usa', name: 'T-Mobile PIN', values: [10, 25, 50], pin: true }
+    { id: 't-mobile-pin-usa', name: 'T-Mobile PIN', values: [10, 25, 50], pin: true },
+    { id: 'sinpin-pinless-usa', name: 'SinPin PINLESS', values: [5, 10], pin: true, range: [1, 100, 0.01] }
 ];
 
 // Fake Bitrefill responses with the same shapes as the live API
@@ -342,7 +343,8 @@ function bitrefillDemoReply(method, path, params = {}, body = {}) {
         currency: 'USD',
         image: p.image || '',
         in_stock: p.inStock !== false,
-        packages: p.values.map(value => ({ id: `${p.id}<&>${value}`, value: String(value), price: Number((value * 1.03).toFixed(2)) }))
+        packages: p.values.map(value => ({ id: `${p.id}<&>${value}`, value: String(value), price: Number((value * 1.03).toFixed(2)) })),
+        ...(p.range ? { range: { min: p.range[0], max: p.range[1], step: p.range[2], price_rate: 1.03 } } : {}) // Typed amounts
     });
     if (path === '/accounts/balance') return { status: 200, data: { data: { balance: 500, currency: 'USD' } } };
     if (path === '/products' && method === 'get') {
@@ -380,7 +382,7 @@ function buildDemoInvoice(invoiceId, item) {
     const isDue = Date.now() - Number(createdAt) >= REFILL_DEMO_DELAY_MS;
     const status = tail === 'now' ? 'complete' : (!isDue ? 'pending' : (tail === 'fail' ? 'denied' : 'complete'));
     const orderStatus = { complete: 'delivered', pending: 'processing', denied: 'failed' }[status];
-    const value = Number(String(item.package_id || '').split('<&>')[1]) || 0;
+    const value = Number(item.value) || Number(String(item.package_id || '').split('<&>')[1]) || 0; // A typed amount or a package
     // Fake 12-digit PIN, the same on every read of this invoice (top-up orders ignore it)
     const pin = `9${String(createdAt).slice(-11)}`;
     return {
@@ -423,9 +425,14 @@ function refillLogoUrl(image) {
     return /^[\w-]+(\/[\w-]+)*$/.test(id) ? `https://res.cloudinary.com/bitrefill/image/upload/h_160/${id}.png` : null;
 }
 
-// One Bitrefill product in our shape. Only fixed packages are sold (ranged amounts are skipped).
+// One Bitrefill product in our shape: its fixed packages, plus the range a customer can type an
+// amount in ($1-$200 on T-Mobile), priced at Bitrefill's per-dollar rate. Ranges are USD-only.
 function normalizeRefillProduct(p) {
     const currency = String(p?.currency || 'USD').toUpperCase(); // Face value currency, e.g. a $15 top-up
+    const r = p?.range || {};
+    const range = currency === 'USD' && [r.min, r.max, r.step, r.price_rate].every(n => Number.isFinite(Number(n)) && Number(n) > 0) && Number(r.max) >= Number(r.min)
+        ? { min: Number(r.min), max: Number(r.max), step: Number(r.step), priceRate: Number(r.price_rate) } // priceRate: account currency per face dollar
+        : null;
     const rawPackages = Array.isArray(p?.packages) ? p.packages : (p?.packages ? [p.packages] : []);
     const packages = rawPackages
         .map(pkg => {
@@ -451,7 +458,8 @@ function normalizeRefillProduct(p) {
         image: refillLogoUrl(p?.image),
         logoBg: /^#[0-9a-f]{6}$/i.test(String(p?.logo_background || '')) ? p.logo_background : '#FFFFFF', // Tile colour behind the logo
         inStock: p?.in_stock !== false,
-        packages
+        packages,
+        range
     };
 }
 
@@ -495,7 +503,7 @@ async function getRefillCatalog(forceFresh = false) {
         if (batch.length < 50) break;
     }
 
-    cachedRefillCatalog = products.filter(p => p.id && p.packages.length > 0 && PHONE_REFILL_COUNTRIES.includes(p.countryCode));
+    cachedRefillCatalog = products.filter(p => p.id && (p.packages.length > 0 || p.range) && PHONE_REFILL_COUNTRIES.includes(p.countryCode));
     lastRefillCatalogFetch = now;
     return cachedRefillCatalog;
 }
@@ -524,6 +532,33 @@ async function getRefillUsdPerUnit(currency) {
 // Bitrefill's USD price in naira, rounded up. Rounding to kobo first stops float noise
 // (10.30 × 1400 = 14420.000000000002) from adding a naira, matching addAccountMarkup.
 const refillCostNGN = (priceUsd, rate) => Math.ceil(Math.round(priceUsd * rate * 100) / 100);
+
+// Customer-typed amounts: the selling price per face dollar (Bitrefill's rate × usdToNgnRate + the
+// operator's or global markup). The page gets nairaPerUnit too, and both sides price an amount with
+// refillRangeAmountNGN(), so the preview a customer sees is exactly what they're charged.
+function priceRefillRange(range, usdPerUnit, settings, operatorMarkup = null) {
+    const rate = Number(settings?.usdToNgnRate) > 0 ? Number(settings.usdToNgnRate) : 1400;
+    const hasOperatorMarkup = Number.isFinite(operatorMarkup) && operatorMarkup >= 0;
+    const value = hasOperatorMarkup ? operatorMarkup : (Number(settings?.refillMarkupPercentage) || 0);
+    const usdPerFace = range.priceRate * usdPerUnit; // Bitrefill's USD price of one face dollar
+    return {
+        min: range.min,
+        max: range.max,
+        step: range.step,
+        usdPerFace,
+        costPerUnitNGN: Math.round(usdPerFace * rate * 1e6) / 1e6,
+        nairaPerUnit: Math.round(usdPerFace * rate * (1 + value / 100) * 1e6) / 1e6,
+        pricing: { level: hasOperatorMarkup ? 'product' : 'global', type: 'markup', value }
+    };
+}
+const refillRangeAmountNGN = (amount, perUnitNGN) => Math.ceil(Math.round(amount * perUnitNGN * 100) / 100);
+
+// A typed amount is valid inside the range, on its step (whole dollars, or cents for step 0.01)
+function isValidRefillAmount(range, amount) {
+    if (!range || !Number.isFinite(amount) || amount < range.min - 1e-9 || amount > range.max + 1e-9) return false;
+    const steps = (amount - range.min) / range.step;
+    return Math.abs(steps - Math.round(steps)) < 1e-6 && Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-6;
+}
 
 function priceRefillPackage(priceUsd, fixedPriceNGN, settings, operatorMarkup = null) {
     const rate = Number(settings?.usdToNgnRate) > 0 ? Number(settings.usdToNgnRate) : 1400;
@@ -3470,7 +3505,7 @@ async function handlePurchaseWithWallet(req, res) {
     const {
         vpnId, proxyId, rdpId,
         accountProductId, quantity,
-        refillProductId, refillPackageId,
+        refillProductId, refillPackageId, refillAmount,
         carrierName, carrierId, productImage,
         mobileNumber,
         planIndex,
@@ -3746,7 +3781,8 @@ async function handlePurchaseWithWallet(req, res) {
             attempt.productType = itemType;
             const productId = cleanText(refillProductId, 120);
             const packageId = cleanText(refillPackageId, 160);
-            if (!productId || !packageId) {
+            const typedAmount = refillAmount !== undefined && refillAmount !== null && refillAmount !== '' ? Number(refillAmount) : null; // A customer-typed amount, in face dollars
+            if (!productId || (!packageId && typedAmount === null)) {
                 return res.status(400).json({ success: false, message: "Select an operator and amount." });
             }
 
@@ -3769,7 +3805,39 @@ async function handlePurchaseWithWallet(req, res) {
                 return res.status(404).json({ success: false, message: "This operator is no longer available. Refresh the page." });
             }
             attempt.label = product.name;
-            const pkg = product.packages.find(p => p.id === packageId);
+
+            // A package, or a typed amount priced at the operator's per-dollar rate (no package id)
+            let pkg;
+            if (typedAmount !== null) {
+                if (!product.range) {
+                    attempt.reason = 'invalid_input';
+                    return res.status(400).json({ success: false, message: `${product.name} only sells the listed amounts.` });
+                }
+                if (!isValidRefillAmount(product.range, typedAmount)) {
+                    attempt.reason = 'invalid_input';
+                    const { min, max, step } = product.range;
+                    return res.status(400).json({ success: false, message: `Enter an amount from $${min} to $${max}${step < 1 ? '' : ' in whole dollars'}.` });
+                }
+                const amountText = String(Math.round(typedAmount * 100) / 100);
+                pkg = {
+                    id: null,
+                    value: amountText,
+                    label: `$${amountText}`,
+                    isCustom: true,
+                    priceUsd: Math.round(typedAmount * product.range.usdPerFace * 100) / 100,
+                    vendorCostNGN: refillRangeAmountNGN(typedAmount, product.range.costPerUnitNGN),
+                    priceNGN: refillRangeAmountNGN(typedAmount, product.range.nairaPerUnit),
+                    pricing: product.range.pricing
+                };
+                // The page showed a price from the same rate; refuse if the rate moved since
+                const shownPrice = Number(req.body.expectedPriceNGN);
+                if (Number.isFinite(shownPrice) && shownPrice > 0 && shownPrice !== pkg.priceNGN) {
+                    attempt.reason = 'price_changed';
+                    return res.status(409).json({ success: false, priceChanged: true, message: `The price changed to ₦${pkg.priceNGN.toLocaleString()}. Check it and try again. You have not been charged.` });
+                }
+            } else {
+                pkg = product.packages.find(p => p.id === packageId);
+            }
             if (!pkg) {
                 attempt.reason = 'unavailable';
                 return res.status(404).json({ success: false, message: "That amount is no longer available. Refresh the page." });
@@ -4005,7 +4073,12 @@ async function handlePurchaseWithWallet(req, res) {
             try {
                 vendorReply = await bitrefillRequest('post', '/invoices', {
                     body: {
-                        products: [{ product_id: product.id, package_id: pkg.id, ...(phoneNumber ? { phone_number: phoneNumber } : {}), quantity: 1 }],
+                        products: [{
+                            product_id: product.id,
+                            ...(pkg.isCustom ? { value: Number(pkg.value) } : { package_id: pkg.id }), // Typed amounts go as a value
+                            ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+                            quantity: 1
+                        }],
                         payment_method: 'balance',
                         auto_pay: true
                     },
@@ -4074,8 +4147,9 @@ async function handlePurchaseWithWallet(req, res) {
                             ...(pinCode?.details ? { pinDetails: pinCode.details } : {}),
                             isManualProcess: false,
                             vendorProductId: product.id,
-                            packageId: pkg.id,
+                            packageId: pkg.id, // null for a typed amount
                             packageValue: pkg.value,
+                            customAmount: Boolean(pkg.isCustom), // The customer typed the amount
                             faceCurrency: product.currency,
                             vendorInvoiceId: String(invoice.id),
                             vendorOrderId: vendorOrderId || null,
@@ -7506,6 +7580,7 @@ async function priceRefillProducts(products) {
             ...p,
             hidden: Boolean(override?.hidden),
             markupPercentage: operatorMarkup, // This operator's own markup %, or null for the global one
+            range: p.range ? priceRefillRange(p.range, usdPerUnit, settings, operatorMarkup) : null,
             packages: p.packages.map(pkg => {
                 const priceUsd = Math.round(pkg.vendorPrice * usdPerUnit * 100) / 100; // Bitrefill's price in USD (cents)
                 return {
@@ -7534,6 +7609,8 @@ async function handleGetPhoneRefillProducts(req, res) {
                 logoBg: p.logoBg,
                 delivery: p.delivery,
                 inStock: p.inStock,
+                // Typed amounts: limits and the selling price per face dollar (no vendor cost)
+                range: p.range ? { min: p.range.min, max: p.range.max, step: p.range.step, nairaPerUnit: p.range.nairaPerUnit } : null,
                 packages: p.packages.map(pkg => ({ id: pkg.id, value: pkg.value, label: pkg.label, price: pkg.priceNGN }))
             }));
 

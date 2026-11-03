@@ -714,7 +714,7 @@ function resetSubmitButton(btn, text) {
                             ${op.image ? `<span class="w-12 h-8 rounded border border-brand-border flex items-center justify-center shrink-0" style="background:${/^#[0-9a-f]{6}$/i.test(raw.logoBg || '') ? raw.logoBg : '#FFFFFF'}"><img src="${op.image}" alt="" class="max-w-[75%] max-h-[60%] object-contain"></span>` :`<span class="w-8 h-8 rounded bg-brand-background text-brand-blue font-black text-xs flex items-center justify-center">${escapeHtmlDeep(raw.name.slice(0, 2).toUpperCase())}</span>`}
                             <div class="min-w-0">
                                 <p class="font-bold text-sm truncate">${op.name}</p>
-                                <p class="text-[10px] text-brand-lightText">${op.packages.length} amounts${raw.markupPercentage !== null && raw.markupPercentage !== undefined ? ` · <span class="text-brand-blue font-bold">${Number(raw.markupPercentage)}% operator markup</span>` : ''}${raw.inStock ? '' : ' · <span class="text-red-500 font-bold">Out of stock at Bitrefill</span>'}${raw.hidden ? ' · <span class="text-orange-600 font-bold">Hidden from users</span>' : ''}</p>
+                                <p class="text-[10px] text-brand-lightText">${op.packages.length} amounts${raw.range ? ` + any amount $${Number(raw.range.min)}-$${Number(raw.range.max)}` : ''}${raw.markupPercentage !== null && raw.markupPercentage !== undefined ? ` · <span class="text-brand-blue font-bold">${Number(raw.markupPercentage)}% operator markup</span>` : ''}${raw.inStock ? '' : ' · <span class="text-red-500 font-bold">Out of stock at Bitrefill</span>'}${raw.hidden ? ' · <span class="text-orange-600 font-bold">Hidden from users</span>' : ''}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
@@ -734,8 +734,16 @@ function resetSubmitButton(btn, text) {
                         </div>
                         <button onclick="saveRefillOperatorMarkup(${opIndex})" class="px-2.5 py-1.5 bg-brand-blue text-white rounded-lg text-[10px] font-bold hover:bg-blue-700">Save</button>
                         ${raw.markupPercentage !== null && raw.markupPercentage !== undefined ? `<button onclick="saveRefillOperatorMarkup(${opIndex}, true)" class="px-2.5 py-1.5 border border-brand-border rounded-lg text-[10px] font-bold text-brand-midText hover:border-red-400 hover:text-red-500">Use global</button>` : ''}
-                        <span class="text-[10px] text-brand-lightText">Applies to every amount below that has no fixed price.</span>
+                        <span class="text-[10px] text-brand-lightText">Applies to every amount below that has no fixed price${raw.range ? ', and to typed amounts' : ''}.</span>
                     </div>
+                    ${raw.range ? `
+                    <!-- Typed Amounts (customers enter any amount in this range; markup only, no fixed price) -->
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 sm:px-5 py-2.5 border-t border-gray-100 text-xs">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-brand-midText">Typed amounts</span>
+                        <span class="font-semibold text-brand-darkText">$${Number(raw.range.min)} to $${Number(raw.range.max)}${Number(raw.range.step) < 1 ? ' (cents allowed)' : ''}</span>
+                        <span class="text-brand-lightText">Cost ${nairaText(Math.round(raw.range.costPerUnitNGN))} per $1</span>
+                        <span class="font-bold text-brand-blue">Sells at ${nairaText(Math.round(raw.range.nairaPerUnit))} per $1 <span class="font-medium text-brand-lightText">(${Number(raw.range.pricing.value)}% ${raw.range.pricing.level === 'product' ? 'operator' : 'global'} markup)</span></span>
+                    </div>` : ''}
                     <div class="overflow-x-auto no-scrollbar border-t border-gray-100">
                         <table class="w-full text-left text-xs whitespace-nowrap">
                             <thead class="bg-gray-50 text-brand-lightText uppercase text-[9px]">

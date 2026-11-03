@@ -76,6 +76,10 @@
                 <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
                 <span>Buy Accts &amp; VPN</span>
             </a>
+            <a href="/esim-refill" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>eSIMs Refill</span>
+            </a>
             <a href="/fund-wallet" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
                 <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                 <span>Add Money</span>
@@ -108,10 +112,6 @@
             <a href="/proxies" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
                 <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
                 <span>Proxies</span>
-            </a>
-            <a href="/esim-refill" class="flex items-center gap-3.5 px-3.5 py-2.5 bg-brand-background text-brand-blue rounded-xl text-[14px] font-semibold transition-colors shadow-[inset_3px_0_0_#E31E24]">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                <span>eSIMs Refill</span>
             </a>
             <a href="/esim-activation" class="flex items-center gap-3.5 px-3.5 py-2.5 text-brand-midText hover:bg-brand-background hover:text-brand-blue rounded-xl text-[14px] font-medium transition-colors">
                 <svg class="w-5 h-5 shrink-0 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
@@ -248,6 +248,15 @@
                     <p class="text-xs font-bold uppercase tracking-widest text-brand-lightText mb-2 flex items-center gap-2">
                         <span id="amountStepNo" class="w-5 h-5 rounded-full bg-brand-red text-white flex items-center justify-center text-[11px]">2</span> <span id="amountLabel">Top-up Amount</span>
                     </p>
+                    <!-- Enter Amount (operators that take any amount in a range, as on Bitrefill) -->
+                    <div id="customAmountBox" class="hidden mb-4">
+                        <div class="flex items-stretch bg-brand-background border border-brand-border rounded-xl focus-within:border-brand-blue focus-within:ring-2 focus-within:ring-brand-blue/30 transition-colors">
+                            <span class="flex items-center px-4 text-[15px] font-semibold text-brand-lightText border-r border-brand-border">$</span>
+                            <input type="number" id="customAmount" aria-label="Amount in US dollars" inputmode="decimal" min="1" step="1" oninput="onCustomAmount()" class="w-full min-w-0 bg-transparent px-4 py-4 text-[15px] font-semibold text-brand-darkText placeholder-brand-lightText outline-none">
+                        </div>
+                        <p id="customAmountHint" class="text-xs text-brand-lightText mt-2">--</p>
+                    </div>
+                    <p id="amountPicksLabel" class="hidden text-xs font-semibold text-brand-lightText mb-2">Or pick an amount</p>
                     <div id="amountGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 max-h-80 overflow-y-auto p-1 -m-1"></div>
 
                     <button onclick="initiatePayment()" id="payBtn" disabled class="mt-5 w-full bg-brand-red hover:bg-red-700 text-white py-4 rounded-xl text-[15px] font-bold transition-all active:scale-95 shadow-lg shadow-red-200/60 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 disabled:cursor-not-allowed disabled:hover:bg-brand-red">
@@ -463,7 +472,7 @@
         }
 
         grid.innerHTML = list.map(op => {
-            const fromPrice = Math.min(...op.packages.map(p => p.price));
+            const fromPrice = Math.min(...op.packages.map(p => p.price), ...(op.range ? [rangeAmountNaira(op.range.min, op.range.nairaPerUnit)] : []));
             return `
                 <div onclick="selectOperator(${operators.indexOf(op)})" class="relative transition-all group ${op.inStock ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}">
                     ${op.inStock ? '' : '<span class="absolute top-2 left-2 z-10 bg-brand-orange text-white text-[8px] font-bold px-2 py-0.5 rounded-md uppercase">Out of stock</span>'}
@@ -552,6 +561,20 @@
         document.getElementById('formDeliveryLabel').innerText = isPin ? 'PIN Delivered Instantly' : 'Instant Top-up';
         document.getElementById('amountLabel').innerText = isPin ? 'PIN Amount' : 'Top-up Amount';
         document.getElementById('amountStepNo').innerText = isPin ? '1' : '2'; // PINs skip the number step
+
+        // Operators with a range take any amount; their fixed amounts become quick picks
+        const range = op.range;
+        const amountInput = document.getElementById('customAmount');
+        document.getElementById('customAmountBox').classList.toggle('hidden', !range);
+        document.getElementById('amountPicksLabel').classList.toggle('hidden', !range || !op.packages.length);
+        amountInput.value = '';
+        if (range) {
+            amountInput.min = range.min;
+            amountInput.max = range.max;
+            amountInput.step = range.step;
+            amountInput.placeholder = `${range.min} - ${range.max}`;
+            showAmountHint();
+        }
         renderAmounts();
         updatePayButton();
 
@@ -573,6 +596,46 @@
 
     function selectPackage(index) {
         selectedPackage = selectedOperator.packages[index] || null;
+        document.getElementById('customAmount').value = '';
+        if (selectedOperator.range) showAmountHint();
+        renderAmounts();
+        updatePayButton();
+    }
+
+    // --- Typed Amounts ---
+    // Same maths as the server (refillRangeAmountNGN), so the price shown is the price charged
+    const rangeAmountNaira = (amount, perUnit) => Math.ceil(Math.round(amount * perUnit * 100) / 100);
+    function isValidRangeAmount(range, amount) {
+        if (!range || !Number.isFinite(amount) || amount < range.min - 1e-9 || amount > range.max + 1e-9) return false;
+        const steps = (amount - range.min) / range.step;
+        return Math.abs(steps - Math.round(steps)) < 1e-6 && Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-6;
+    }
+
+    function showAmountHint(text, isError = false) {
+        const { min, max, step } = selectedOperator.range;
+        const hint = document.getElementById('customAmountHint');
+        hint.className = `text-xs mt-2 ${isError ? 'text-red-500 font-semibold' : 'text-brand-lightText'}`;
+        hint.innerHTML = text || `Enter any amount from $${min} to $${max}${step < 1 ? '' : ' (whole dollars)'}.`;
+    }
+
+    function onCustomAmount() {
+        const range = selectedOperator?.range;
+        const raw = document.getElementById('customAmount').value.trim();
+        if (!range) return;
+        if (raw === '') {
+            if (selectedPackage?.custom) selectedPackage = null;
+            showAmountHint();
+        } else {
+            const amount = Number(raw);
+            if (isValidRangeAmount(range, amount)) {
+                const value = String(Math.round(amount * 100) / 100);
+                selectedPackage = { id: null, custom: true, value, label: `$${value}`, price: rangeAmountNaira(amount, range.nairaPerUnit) };
+                showAmountHint(`You pay <span class="font-bold text-brand-blue">${formatNaira(selectedPackage.price)}</span> for a $${escapeHtml(value)} ${selectedOperator.delivery === 'pin' ? 'PIN' : 'top-up'}.`);
+            } else {
+                selectedPackage = null;
+                showAmountHint(`Enter an amount from $${range.min} to $${range.max}${range.step < 1 ? '' : ' in whole dollars'}.`, true);
+            }
+        }
         renderAmounts();
         updatePayButton();
     }
@@ -651,7 +714,10 @@
                 },
                 body: JSON.stringify({
                     refillProductId: selectedOperator.id,
-                    refillPackageId: selectedPackage.id,
+                    // A typed amount goes with the price shown, so a rate change is refused, not charged
+                    ...(selectedPackage.custom
+                        ? { refillAmount: Number(selectedPackage.value), expectedPriceNGN: selectedPackage.price }
+                        : { refillPackageId: selectedPackage.id }),
                     ...(digits ? { mobileNumber: `+1${digits}` } : {}),
                     useBonus: document.getElementById('esimUseBonusToggle').checked && userBalances.hasDeposited
                 })
@@ -665,6 +731,18 @@
                 fetchUserProfile(); // Refresh the balance
             } else {
                 alert(data.message || "Top-up failed. You have not been charged.");
+                if (data.priceChanged) {
+                    // Reload the rates and show the new price for the same amount
+                    document.getElementById('paymentModal').classList.add('hidden');
+                    await loadOperators();
+                    const fresh = operators.find(op => op.id === selectedOperator.id);
+                    if (fresh) {
+                        const typed = document.getElementById('customAmount').value;
+                        selectOperator(operators.indexOf(fresh));
+                        document.getElementById('customAmount').value = typed;
+                        onCustomAmount();
+                    }
+                }
             }
         } catch (err) {
             console.error("Network Error:", err);
