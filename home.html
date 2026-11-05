@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LSLMWBKT1Z"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-LSLMWBKT1Z');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>DeemaxHub | Virtual Numbers, Social Accounts, eSIMs &amp; RDP in Naira</title>
@@ -668,8 +678,18 @@
             }
         }
 
+        // Pages that need an account: signed-out visitors go straight to login instead of bouncing off the page
+        const GATED_PAGES = ['/dashboard', '/virtual-numbers', '/accounts', '/esim-activation', '/esim-refill', '/fund-wallet', '/orders', '/proxies', '/rdp', '/vpn', '/profile'];
+
         function applyAuthState() {
-            document.documentElement.classList.toggle('signed-in', hasLiveUserSession());
+            const signedIn = hasLiveUserSession();
+            document.documentElement.classList.toggle('signed-in', signedIn);
+            document.querySelectorAll('a[href]').forEach(link => {
+                const target = link.dataset.gatedHref || link.getAttribute('href');
+                if (!GATED_PAGES.includes(target)) return;
+                link.dataset.gatedHref = target;
+                link.setAttribute('href', signedIn ? target : '/login');
+            });
         }
 
         /**
@@ -727,6 +747,7 @@
 
         document.getElementById('year').textContent = new Date().getFullYear();
         applyAuthState();
+        window.addEventListener('pageshow', applyAuthState); // Back after signing in or out restores this page from cache
         checkSystemStatus();
         runOtpDemo();
 

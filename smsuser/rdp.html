@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- SIGNED-OUT GUARD (Runs before anything renders; replace() keeps this page out of Back) -->
+    <script>
+        (function () {
+            try {
+                const token = localStorage.getItem('userToken');
+                const payload = token && JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                if (payload && payload.exp * 1000 > Date.now()) return;
+            } catch (e) {}
+            window.location.replace('/login');
+        })();
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LSLMWBKT1Z"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-LSLMWBKT1Z');
+    </script>
+
     <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
         <title>High-Performance Remote Desktop (RDP) & VPS | DeemaxHub</title>
@@ -975,7 +997,7 @@ function contactRDPAdmin() {
         localStorage.removeItem('userToken');
         localStorage.removeItem('userData');
         localStorage.removeItem('dashboard_cache');
-        window.location.href = '/login';
+        window.location.replace('/login');
     }
 
     window.onload = () => {

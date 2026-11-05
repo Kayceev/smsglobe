@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- SIGNED-OUT GUARD (Runs before anything renders; replace() keeps this page out of Back) -->
+  <script>
+      (function () {
+          try {
+              const token = localStorage.getItem('userToken');
+              const payload = token && JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+              if (payload && payload.exp * 1000 > Date.now()) return;
+          } catch (e) {}
+          window.location.replace('/login');
+      })();
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LSLMWBKT1Z"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-LSLMWBKT1Z');
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buy Virtual Numbers for SMS Verification | DeemaxHub</title>
@@ -275,7 +297,7 @@
 
     // --- 1. Page Guard & State ---
     if (!localStorage.getItem('userToken')) {
-        window.location.href = '/login';
+        window.location.replace('/login');
     }
 
     const API_BASE_URL = '/api';
@@ -861,7 +883,7 @@ function logout() {
     localStorage.removeItem('userData');
     localStorage.removeItem('dashboard_cache');
     localStorage.removeItem('user_balance');
-    window.location.href = '/login';
+    window.location.replace('/login');
 }
 
 // --- 2b. Inline Icons (Heroicons-style, same set as the dashboard) ---
