@@ -527,6 +527,17 @@ async function getRefillUsdPerUnit(currency) {
     return 1 / satsPerUsd[Math.floor(satsPerUsd.length * 0.1)]; // 10th percentile skips one-off discounts
 }
 
+// ⚠️ CRITICAL: Bitrefill's satoshi prices move with BTC on every read, but what a face dollar costs
+// in USD barely does. Snapping that ratio to 0.1% keeps one naira price per amount across catalog
+// reads and serverless instances, so a BTC move can't change the price a customer was shown.
+const snapRefillRatio = (ratio) => Math.round(ratio * 1000) / 1000;
+function refillPackageUsd(pkg, usdPerUnit) {
+    const rawUsd = pkg.vendorPrice * usdPerUnit;
+    const face = /^\d+(\.\d+)?$/.test(pkg.value) ? Number(pkg.value) : 0;
+    if (face > 0) return Math.round(face * snapRefillRatio(rawUsd / face) * 100) / 100;
+    return Math.round(rawUsd * 20) / 20; // Text bundles ("2 GB 30 Days") have no face value: nearest 5 cents
+}
+
 // Selling price for one top-up amount: the admin's fixed amount when set, otherwise Bitrefill's USD
 // price × usdToNgnRate + the global refill markup %. A fixed amount below cost is ignored.
 // Bitrefill's USD price in naira, rounded up. Rounding to kobo first stops float noise
@@ -540,7 +551,7 @@ function priceRefillRange(range, usdPerUnit, settings, operatorMarkup = null) {
     const rate = Number(settings?.usdToNgnRate) > 0 ? Number(settings.usdToNgnRate) : 1400;
     const hasOperatorMarkup = Number.isFinite(operatorMarkup) && operatorMarkup >= 0;
     const value = hasOperatorMarkup ? operatorMarkup : (Number(settings?.refillMarkupPercentage) || 0);
-    const usdPerFace = range.priceRate * usdPerUnit; // Bitrefill's USD price of one face dollar
+    const usdPerFace = snapRefillRatio(range.priceRate * usdPerUnit); // Bitrefill's USD price of one face dollar
     return {
         min: range.min,
         max: range.max,
@@ -3786,13 +3797,19 @@ async function handlePurchaseWithWallet(req, res) {
                 return res.status(400).json({ success: false, message: "Select an operator and amount." });
             }
 
-            // 1. Reload The Operator For A Live Price (Bitrefill prices move with fees)
+            // 1. Price From The Catalog The Page Shows, Live Check Only For Stock
+            // Only catalog products can be bought, so an id for a gift card or eSIM is refused. A live
+            // price here would use fresh satoshis against the catalog's BTC rate and drift from the page.
             let product = null;
             try {
                 const live = await bitrefillRequest('get', `/products/${encodeURIComponent(productId)}`);
                 if (live.status === 200 && (live.data?.data || live.data)?.id) {
-                    [product] = await priceRefillProducts([normalizeRefillProduct(live.data.data || live.data)]);
-                } else if (live.status !== 404) {
+                    const listed = (await getRefillCatalog()).find(p => p.id === productId);
+                    if (listed) {
+                        [product] = await priceRefillProducts([listed]);
+                        product = { ...product, inStock: (live.data.data || live.data).in_stock !== false };
+                    }
+                } else if (live.status !== 404 && live.status !== 403) { // 403: Bitrefill withdrew it from this account
                     throw new Error(`Bitrefill /products/${productId} replied ${live.status}: ${live.data?.message || ''}`);
                 }
             } catch (err) {
@@ -3829,18 +3846,19 @@ async function handlePurchaseWithWallet(req, res) {
                     priceNGN: refillRangeAmountNGN(typedAmount, product.range.nairaPerUnit),
                     pricing: product.range.pricing
                 };
-                // The page showed a price from the same rate; refuse if the rate moved since
-                const shownPrice = Number(req.body.expectedPriceNGN);
-                if (Number.isFinite(shownPrice) && shownPrice > 0 && shownPrice !== pkg.priceNGN) {
-                    attempt.reason = 'price_changed';
-                    return res.status(409).json({ success: false, priceChanged: true, message: `The price changed to ₦${pkg.priceNGN.toLocaleString()}. Check it and try again. You have not been charged.` });
-                }
             } else {
                 pkg = product.packages.find(p => p.id === packageId);
             }
             if (!pkg) {
                 attempt.reason = 'unavailable';
                 return res.status(404).json({ success: false, message: "That amount is no longer available. Refresh the page." });
+            }
+
+            // The customer pays what they saw or nothing: a real price change (markup, rate, fee) is refused
+            const shownPrice = Number(req.body.expectedPriceNGN);
+            if (Number.isFinite(shownPrice) && shownPrice > 0 && shownPrice !== pkg.priceNGN) {
+                attempt.reason = 'price_changed';
+                return res.status(409).json({ success: false, priceChanged: true, message: `The price changed to ₦${pkg.priceNGN.toLocaleString()}. Check it and try again. You have not been charged.` });
             }
             if (!product.inStock) {
                 attempt.reason = 'out_of_stock';
@@ -7582,7 +7600,7 @@ async function priceRefillProducts(products) {
             markupPercentage: operatorMarkup, // This operator's own markup %, or null for the global one
             range: p.range ? priceRefillRange(p.range, usdPerUnit, settings, operatorMarkup) : null,
             packages: p.packages.map(pkg => {
-                const priceUsd = Math.round(pkg.vendorPrice * usdPerUnit * 100) / 100; // Bitrefill's price in USD (cents)
+                const priceUsd = refillPackageUsd(pkg, usdPerUnit); // Bitrefill's price in USD (cents), steady when BTC moves
                 return {
                     ...pkg,
                     priceUsd,

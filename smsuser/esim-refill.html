@@ -714,10 +714,9 @@
                 },
                 body: JSON.stringify({
                     refillProductId: selectedOperator.id,
-                    // A typed amount goes with the price shown, so a rate change is refused, not charged
-                    ...(selectedPackage.custom
-                        ? { refillAmount: Number(selectedPackage.value), expectedPriceNGN: selectedPackage.price }
-                        : { refillPackageId: selectedPackage.id }),
+                    // The amount goes with the price shown, so a real price change is refused, not charged
+                    ...(selectedPackage.custom ? { refillAmount: Number(selectedPackage.value) } : { refillPackageId: selectedPackage.id }),
+                    expectedPriceNGN: selectedPackage.price,
                     ...(digits ? { mobileNumber: `+1${digits}` } : {}),
                     useBonus: document.getElementById('esimUseBonusToggle').checked && userBalances.hasDeposited
                 })
