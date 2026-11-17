@@ -173,10 +173,10 @@
             </header>
 
             <!-- General Markup And Floor Price (apply when no override matches) -->
-            <section class="bg-white rounded-2xl border border-brand-border shadow-sm p-5 sm:p-6 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-                <div>
+            <section class="bg-white rounded-2xl border border-brand-border shadow-sm p-5 sm:p-6 flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                <div class="xl:max-w-xs xl:shrink-0">
                     <h3 class="font-bold text-base">General pricing</h3>
-                    <p class="text-brand-lightText text-xs mt-0.5">SMSBower charges in dollars; the Naira rate converts its cost. The markup is added to that cost for every number with no price override below. No marked-up number sells under the floor price; fixed prices you set are used as they are.</p>
+                    <p class="text-brand-lightText text-xs mt-0.5">SMSBower charges in dollars; the Naira rate converts its cost. The markup is added to that cost for every number with no price override below. No marked-up number sells under the floor price; fixed prices you set are used as they are. If the quoted operator runs out, the buffer lets another operator sell up to that much more than the quoted cost (never past what the user paid), instead of the sale failing.</p>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3">
                     <div class="grid grid-cols-2 sm:flex gap-3">
@@ -199,6 +199,13 @@
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-brand-lightText font-bold">₦</span>
                                 <input id="floorPriceInput" type="number" min="0" step="1" placeholder="0" class="w-full bg-brand-background/30 border border-brand-border p-3 pl-8 rounded-xl outline-none focus:border-brand-blue font-bold tabular-nums">
+                            </div>
+                        </div>
+                        <div class="sm:w-32">
+                            <label class="block text-[10px] font-bold text-brand-midText mb-1.5 uppercase tracking-widest">Buffer</label>
+                            <div class="relative">
+                                <input id="bufferInput" type="number" min="0" max="500" step="1" placeholder="30" class="w-full bg-brand-background/30 border border-brand-border p-3 pr-8 rounded-xl outline-none focus:border-brand-blue font-bold tabular-nums">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-lightText font-bold">%</span>
                             </div>
                         </div>
                     </div>
@@ -267,11 +274,30 @@
                         <p id="priceHint" class="text-xs text-brand-lightText mt-2"></p>
                     </div>
 
-                    <!-- 4. Pricing Style -->
+                    <!-- 4. Buffer (independent of price: how far above cost this pair may substitute an operator) -->
                     <div>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div>
-                                <p class="text-[10px] font-bold text-brand-midText uppercase tracking-widest">4. Pricing style</p>
+                                <p class="text-[10px] font-bold text-brand-midText uppercase tracking-widest">4. Buffer</p>
+                                <p id="currentBuffer" class="text-xs text-brand-lightText mt-0.5"></p>
+                            </div>
+                            <div class="flex bg-brand-background p-1 rounded-xl border border-brand-border w-full sm:w-auto">
+                                <button type="button" id="bufferDefault" onclick="setBufferType('default')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all">General</button>
+                                <button type="button" id="bufferCustom" onclick="setBufferType('custom')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold transition-all">Custom %</button>
+                            </div>
+                        </div>
+                        <div id="bufferInputWrap" class="hidden mt-4 relative sm:max-w-xs">
+                            <input id="bufferOverrideInput" type="number" min="0" max="500" step="1" oninput="onBufferInput()" class="w-full bg-brand-background/30 border border-brand-border p-3 pr-8 rounded-xl outline-none focus:border-brand-blue font-bold tabular-nums">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-brand-lightText font-bold">%</span>
+                        </div>
+                        <p id="bufferHint" class="text-xs text-brand-lightText mt-2"></p>
+                    </div>
+
+                    <!-- 5. Pricing Style -->
+                    <div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <p class="text-[10px] font-bold text-brand-midText uppercase tracking-widest">5. Pricing style</p>
                                 <p id="currentSetting" class="text-xs text-brand-lightText mt-0.5"></p>
                             </div>
                             <div id="modeSwitch" class="flex bg-brand-background p-1 rounded-xl border border-brand-border w-full sm:w-auto">
@@ -308,6 +334,7 @@
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Service</th>
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Country</th>
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Price</th>
+                                <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Buffer</th>
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Pricing style</th>
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText">Updated</th>
                                 <th class="px-6 py-3 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-brand-lightText text-right">Actions</th>
@@ -365,6 +392,7 @@
     const ALL_COUNTRIES = { countryId: ANY, countryName: 'All countries' };
 
     // One saved price rule as text: "40% markup" / "₦2,500 fixed"
+    const hasPriceRule = rule => Boolean(rule && (rule.pricingType === 'fixed' || rule.pricingType === 'markup')); // A row can be buffer-only, with no price rule
     const describeRule = rule => rule.pricingType === 'fixed' ? `${naira(rule.fixedPriceNGN)} fixed` : `${Number(rule.markupPercentage)}% markup`;
 
     /**
@@ -416,18 +444,21 @@
         };
     }
 
-    // --- 2. General Markup And Floor Price ---
+    // --- 2. General Markup, Floor Price And Buffer ---
     let generalMarkup = 0;
     let floorPrice = 0;
+    let smsBuffer = 30;
 
     async function loadGeneralMarkup() {
         try {
             const data = await api('get-system-settings');
             generalMarkup = Number(data.settings?.smsMarkupPercentage) || 0;
             floorPrice = Number(data.settings?.smsFloorPriceNGN) || 0;
+            smsBuffer = Number(data.settings?.smsBufferPercentage) >= 0 ? Number(data.settings.smsBufferPercentage) : 30;
             document.getElementById('ngnRateInput').value = Number(data.settings?.usdToNgnRate) > 0 ? Number(data.settings.usdToNgnRate) : 1400; // Same fallback as getUsdToNgnRate
             document.getElementById('generalMarkupInput').value = generalMarkup;
             document.getElementById('floorPriceInput').value = floorPrice;
+            document.getElementById('bufferInput').value = smsBuffer;
         } catch (err) {
             document.getElementById('generalMarkupInput').placeholder = 'Error';
         }
@@ -437,19 +468,23 @@
         const btn = document.getElementById('generalMarkupBtn');
         const value = Number(document.getElementById('generalMarkupInput').value);
         const floor = Math.round(Number(document.getElementById('floorPriceInput').value || 0));
+        const buffer = Number(document.getElementById('bufferInput').value);
         if (!Number.isFinite(value) || value < 0 || value > 1000) return notify('Markup must be between 0% and 1000%.', 'error');
         if (!Number.isFinite(floor) || floor < 0 || floor > 10000000) return notify('Enter a floor price in Naira (0 for none).', 'error');
+        if (!Number.isFinite(buffer) || buffer < 0 || buffer > 500) return notify('Buffer must be between 0% and 500%.', 'error');
         const rate = Number(document.getElementById('ngnRateInput').value);
         if (!Number.isFinite(rate) || rate < 1 || rate > 100000) return notify('Enter how many Naira $1 costs.', 'error');
 
         btn.disabled = true;
         btn.innerText = 'Processing...';
         try {
-            const data = await api('update-system-settings', { method: 'POST', body: JSON.stringify({ usdToNgnRate: rate, smsMarkupPercentage: value, smsFloorPriceNGN: floor }) });
+            const data = await api('update-system-settings', { method: 'POST', body: JSON.stringify({ usdToNgnRate: rate, smsMarkupPercentage: value, smsFloorPriceNGN: floor, smsBufferPercentage: buffer }) });
             if (!data.success) return notify(data.message || 'Save failed', 'error');
             generalMarkup = value;
             floorPrice = floor;
+            smsBuffer = buffer;
             document.getElementById('floorPriceInput').value = floor;
+            document.getElementById('bufferInput').value = smsBuffer;
             notify('General pricing saved.', 'success');
             refreshEditor();
         } catch (err) {
@@ -523,13 +558,39 @@
         }
     }
 
-    // --- 4. Price And Pricing Style Editor ---
+    // --- 4. Price, Buffer And Pricing Style Editor ---
     let poolData = null; // Response of /api/sms-operators (service + country only)
-    let savedPrice = null; // Saved price override for the chosen pair, if any
+    let savedPrice = null; // Saved price override row for the chosen pair, if any (may be buffer-only)
     let priceDraft = { type: 'default', value: '' };
+    let bufferDraft = { type: 'default', value: '' }; // 'default' inherits service/country/general, 'custom' sets this pair's own
     let poolMode = 'auto';
     let chosenOperatorId = null;
     let operatorListOpen = false; // Full operator list shown (otherwise only the chosen one)
+
+    // Draft helper for the price segment: null (no row to save) or the row to save
+    function draftPriceDraft(savedRow) {
+        return hasPriceRule(savedRow)
+            ? { type: savedRow.pricingType, value: String(savedRow.pricingType === 'fixed' ? savedRow.fixedPriceNGN : savedRow.markupPercentage) }
+            : { type: 'default', value: '' };
+    }
+    function draftBufferDraft(savedRow) {
+        return savedRow && savedRow.bufferPercentage != null
+            ? { type: 'custom', value: String(savedRow.bufferPercentage) }
+            : { type: 'default', value: '' };
+    }
+
+    // This pair's buffer right now: the draft if customized, otherwise service > country > general
+    function effectiveBufferPercent() {
+        if (bufferDraft.type === 'custom') {
+            const v = Number(bufferDraft.value);
+            if (Number.isFinite(v)) return v;
+        }
+        const rows = [poolData?.priceRules?.service, poolData?.priceRules?.country].filter(Boolean);
+        for (const row of rows) {
+            if (row.bufferPercentage != null) return Number(row.bufferPercentage);
+        }
+        return Number(poolData?.priceRules?.generalBuffer ?? smsBuffer ?? 30);
+    }
 
     const isExactPair = () => selectedService && selectedCountry && selectedService.code !== ANY && selectedCountry.countryId !== ANY;
 
@@ -546,9 +607,8 @@
         const area = document.getElementById('operatorsArea');
         poolData = null;
         savedPrice = priceOverrides.find(o => o.serviceCode === selectedService.code && o.countryId === selectedCountry.countryId) || null;
-        priceDraft = savedPrice
-            ? { type: savedPrice.pricingType, value: String(savedPrice.pricingType === 'fixed' ? savedPrice.fixedPriceNGN : savedPrice.markupPercentage) }
-            : { type: 'default', value: '' };
+        priceDraft = draftPriceDraft(savedPrice);
+        bufferDraft = draftBufferDraft(savedPrice);
         poolMode = 'auto';
         chosenOperatorId = null;
         operatorListOpen = false;
@@ -567,9 +627,8 @@
             if (!data.success) throw new Error(data.message);
             poolData = data;
             savedPrice = data.priceRules?.serviceCountry || null;
-            priceDraft = savedPrice
-                ? { type: savedPrice.pricingType, value: String(savedPrice.pricingType === 'fixed' ? savedPrice.fixedPriceNGN : savedPrice.markupPercentage) }
-                : { type: 'default', value: '' };
+            priceDraft = draftPriceDraft(savedPrice);
+            bufferDraft = draftBufferDraft(savedPrice);
             poolMode = data.override ? 'fixed' : 'auto';
             chosenOperatorId = data.override?.operatorId || null;
             render();
@@ -589,6 +648,19 @@
 
     window.onPriceInput = function() {
         priceDraft.value = document.getElementById('priceInput').value;
+        renderPool();
+        renderSave();
+    };
+
+    window.setBufferType = function(type) {
+        if (type === bufferDraft.type) return;
+        bufferDraft = { type, value: type === 'custom' && savedPrice?.bufferPercentage != null ? String(savedPrice.bufferPercentage) : '' };
+        render();
+        if (type === 'custom') document.getElementById('bufferOverrideInput').focus();
+    };
+
+    window.onBufferInput = function() {
+        bufferDraft.value = document.getElementById('bufferOverrideInput').value;
         renderPool();
         renderSave();
     };
@@ -620,16 +692,21 @@
     }
 
     // What users pay for one operator under the draft (mirrors resolveSmsTierPrice in api.js)
+    // ⚠️ The floor also clamps to this operator's own cost, same as the server: a flat floor
+    // alone can't stop an expensive operator from pricing under what it cost us.
     function previewPrice(baseCostNGN) {
-        const floor = Number(poolData.priceRules?.floorPriceNGN) || 0;
-        const withMarkup = markup => Math.max(baseCostNGN * (1 + (Number(markup) || 0) / 100), floor);
+        const safeFloor = Math.max(Number(poolData.priceRules?.floorPriceNGN) || 0, baseCostNGN);
+        const withMarkup = markup => Math.max(baseCostNGN * (1 + (Number(markup) || 0) / 100), safeFloor);
         const rules = [draftRule(), poolData.priceRules?.service, poolData.priceRules?.country].filter(Boolean);
         for (const rule of rules) {
             if (rule.pricingType === 'fixed') {
                 if (Number(rule.fixedPriceNGN) >= baseCostNGN) return Number(rule.fixedPriceNGN);
                 continue;
             }
-            return withMarkup(rule.markupPercentage);
+            if (rule.pricingType === 'markup') {
+                return withMarkup(rule.markupPercentage);
+            }
+            // No pricingType at this level (a buffer-only row): no price rule here, keep looking
         }
         return withMarkup(poolData.priceRules?.generalMarkup);
     }
@@ -638,8 +715,8 @@
     function defaultPriceText() {
         if (isExactPair()) {
             const { service, country } = poolData?.priceRules || {};
-            if (service) return `Default uses the ${selectedService.name} price: ${describeRule(service)}.`;
-            if (country) return `Default uses the ${selectedCountry.countryName} price: ${describeRule(country)}.`;
+            if (hasPriceRule(service)) return `Default uses the ${selectedService.name} price: ${describeRule(service)}.`;
+            if (hasPriceRule(country)) return `Default uses the ${selectedCountry.countryName} price: ${describeRule(country)}.`;
             return `Default uses the general markup: ${poolData?.priceRules?.generalMarkup ?? generalMarkup}%${floorPrice > 0 ? `, floor ${naira(floorPrice)}` : ''}.`;
         }
         return selectedService.code === ANY
@@ -654,6 +731,7 @@
     function render() {
         document.getElementById('priceInput').value = priceDraft.value;
         renderPrice();
+        renderBuffer();
         renderPool();
         renderSave();
     }
@@ -666,7 +744,7 @@
         const scope = isExactPair()
             ? `${selectedService.name} in ${selectedCountry.countryName}`
             : (selectedService.code === ANY ? `every service in ${selectedCountry.countryName}` : `${selectedService.name} in every country`);
-        document.getElementById('currentPrice').innerHTML = savedPrice
+        document.getElementById('currentPrice').innerHTML = hasPriceRule(savedPrice)
             ? `Now: <b class="text-brand-darkText">${describeRule(savedPrice)}</b> for ${scope}`
             : `Now: default for ${scope}`;
 
@@ -685,6 +763,47 @@
             : (priceDraft.type === 'fixed'
                 ? 'Users pay exactly this. Where SMSBower charges more than it, the next rule down prices the number, so you never sell at a loss.'
                 : "Added on top of SMSBower's cost, so the price follows SMSBower and the exchange rate.");
+    }
+
+    // What the buffer falls back to, in words
+    function defaultBufferText() {
+        const { service, country } = poolData?.priceRules || {};
+        if (isExactPair()) {
+            if (service?.bufferPercentage != null) return `Default uses the ${selectedService.name} buffer: ${service.bufferPercentage}%.`;
+            if (country?.bufferPercentage != null) return `Default uses the ${selectedCountry.countryName} buffer: ${country.bufferPercentage}%.`;
+        }
+        return `Default uses the general buffer (${poolData?.priceRules?.generalBuffer ?? smsBuffer}%).`;
+    }
+
+    function renderBuffer() {
+        document.getElementById('bufferDefault').className = segmentClass(bufferDraft.type === 'default');
+        document.getElementById('bufferCustom').className = segmentClass(bufferDraft.type === 'custom');
+
+        const scope = isExactPair() ? `${selectedService.name} in ${selectedCountry.countryName}` : '';
+        document.getElementById('currentBuffer').innerHTML = (savedPrice && savedPrice.bufferPercentage != null)
+            ? `Now: <b class="text-brand-darkText">${savedPrice.bufferPercentage}%</b> for ${scope}`
+            : `Now: general${scope ? ` for ${scope}` : ''}`;
+
+        const isDefault = bufferDraft.type === 'default';
+        document.getElementById('bufferInputWrap').classList.toggle('hidden', isDefault);
+        document.getElementById('bufferOverrideInput').value = bufferDraft.value;
+
+        document.getElementById('bufferHint').innerText = isDefault
+            ? defaultBufferText()
+            : "If this operator sells out, SMSBower may substitute another one up to this much more than cost, never past what the user pays.";
+    }
+
+    // Cheapest pool (live cost) → Max buffer (the ceiling for substitution) → Profit → User pays
+    function priceBreakdownHtml(baseCostNGN) {
+        const bufferPct = effectiveBufferPercent();
+        const basis = baseCostNGN * (1 + bufferPct / 100);
+        const pay = previewPrice(baseCostNGN);
+        const profit = pay - baseCostNGN;
+        return `
+            <p class="text-xs text-brand-lightText">Cheapest pool: ${naira(Math.round(baseCostNGN))}</p>
+            <p class="text-xs text-brand-lightText">Max buffer (× 1+${bufferPct}%): ${naira(Math.round(basis))}</p>
+            <p class="text-xs font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-500'}">Profit ${naira(Math.round(profit))}</p>
+            <p class="font-bold text-brand-blue">User pays ${naira(Math.round(pay))}</p>`;
     }
 
     function renderPool() {
@@ -718,9 +837,8 @@
                            <p class="text-[10px] font-bold uppercase tracking-widest text-brand-lightText">Cheapest picks</p>
                            <p class="font-bold mt-0.5">Operator ${automatic.operatorId} <span class="font-medium text-brand-lightText text-xs">· ${Number(automatic.count).toLocaleString()} in stock</span></p>
                        </div>
-                       <div class="text-right">
-                           <p class="text-xs text-brand-lightText">Cost ${usd(automatic.costUsd)} (${naira(automatic.costNGN)})</p>
-                           <p class="font-bold text-brand-blue">Users pay ${naira(previewPrice(automatic.baseCostNGN))}</p>
+                       <div class="text-right leading-tight space-y-0.5">
+                           ${priceBreakdownHtml(automatic.baseCostNGN)}
                        </div>
                    </div>`
                 : '<p class="text-xs text-brand-orange py-4 text-center">SMSBower lists no operators for this service and country right now.</p>';
@@ -734,8 +852,8 @@
         area.innerHTML = operators.length ? `
             <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-xs text-brand-lightText">${collapsed
-                    ? 'Users buy from this operator while it has numbers; when it runs out, they get any operator at or below its cost.'
-                    : 'Choose an operator. Users buy from it while it has numbers; when it runs out, they get any operator at or below its cost.'}</p>
+                    ? `Users buy from this operator while it has numbers; when it runs out, they get any operator up to the buffer (${effectiveBufferPercent()}%) above cost.`
+                    : `Choose an operator. Users buy from it while it has numbers; when it runs out, they get any operator up to the buffer (${effectiveBufferPercent()}%) above cost.`}</p>
                 ${collapsed ? `<button type="button" onclick="openOperatorList()" class="shrink-0 text-brand-blue font-bold text-xs hover:underline">Change (${operators.length})</button>` : ''}
             </div>
             <div class="grid gap-2">
@@ -755,10 +873,9 @@
                                     <span class="block text-xs ${op.count > 0 ? 'text-brand-lightText' : 'text-red-500 font-semibold'}">${op.count > 0 ? `${Number(op.count).toLocaleString()} in stock` : 'No numbers right now'}</span>
                                 </span>
                             </span>
-                            <span class="text-right tabular-nums">
-                                <span class="block text-xs text-brand-lightText">Cost ${usd(op.costUsd)} (${naira(op.costNGN)})</span>
-                                <span class="block font-bold text-brand-blue">Users pay ${naira(previewPrice(op.baseCostNGN))}</span>
-                            </span>
+                            <div class="text-right tabular-nums leading-tight space-y-0.5 shrink-0">
+                                ${priceBreakdownHtml(op.baseCostNGN)}
+                            </div>
                         </button>`;
                 }).join('')}
             </div>`
@@ -767,23 +884,38 @@
 
     // Works out what Save would change: { price: 'save'|'remove'|null, pool: 'save'|'remove'|null, error }
     function pendingChanges() {
-        const changes = { price: null, pool: null, error: '' };
+        const changes = { price: null, buffer: null, pool: null, error: '' };
 
         // 1. Price
         const rule = draftRule();
         if (priceDraft.type === 'default') {
-            if (savedPrice) changes.price = 'remove';
+            if (hasPriceRule(savedPrice)) changes.price = 'remove';
         } else if (!rule) {
             changes.error = priceDraft.type === 'fixed' ? 'Enter a fixed price.' : 'Enter a markup percentage.';
         } else if (rule.pricingType === 'markup' && (rule.markupPercentage < 0 || rule.markupPercentage > 1000)) {
             changes.error = 'Markup must be between 0% and 1000%.';
         } else if (rule.pricingType === 'fixed' && rule.fixedPriceNGN < 1) {
             changes.error = 'Enter a fixed price in Naira.';
-        } else if (!savedPrice || savedPrice.pricingType !== rule.pricingType || describeRule(savedPrice) !== describeRule(rule)) {
+        } else if (!hasPriceRule(savedPrice) || savedPrice.pricingType !== rule.pricingType || describeRule(savedPrice) !== describeRule(rule)) {
             changes.price = 'save';
         }
 
-        // 2. Pricing Style (service + country only)
+        // 2. Buffer (independent of price)
+        const savedBuffer = savedPrice?.bufferPercentage ?? null;
+        if (bufferDraft.type === 'default') {
+            if (savedBuffer != null) changes.buffer = 'remove';
+        } else {
+            const v = Number(bufferDraft.value);
+            if (bufferDraft.value === '' || !Number.isFinite(v)) {
+                changes.error = changes.error || 'Enter a buffer percentage.';
+            } else if (v < 0 || v > 500) {
+                changes.error = changes.error || 'Buffer must be between 0% and 500%.';
+            } else if (savedBuffer == null || Number(savedBuffer) !== v) {
+                changes.buffer = 'save';
+            }
+        }
+
+        // 3. Pricing Style (service + country only)
         if (isExactPair() && poolData) {
             const override = poolData.override;
             if (poolMode === 'auto' && override) changes.pool = 'remove';
@@ -796,15 +928,15 @@
     }
 
     function renderSave() {
-        const { price, pool, error } = pendingChanges();
+        const { price, buffer, pool, error } = pendingChanges();
         const saveBtn = document.getElementById('saveBtn');
-        saveBtn.disabled = Boolean(error) || (!price && !pool) || (isExactPair() && !poolData);
+        saveBtn.disabled = Boolean(error) || (!price && !buffer && !pool) || (isExactPair() && !poolData);
         saveBtn.innerText = 'Save';
-        document.getElementById('saveHint').innerText = error || (!price && !pool ? 'No changes.' : '');
+        document.getElementById('saveHint').innerText = error || (!price && !buffer && !pool ? 'No changes.' : '');
     }
 
     async function saveChanges() {
-        const { price, pool, error } = pendingChanges();
+        const { price, buffer, pool, error } = pendingChanges();
         if (error) return notify(error, 'error');
 
         const saveBtn = document.getElementById('saveBtn');
@@ -812,25 +944,28 @@
         saveBtn.innerText = 'Processing...';
         const messages = [];
         try {
-            // 1. Price Override
-            if (price === 'remove') {
-                const data = await api(`sms-price-overrides?id=${encodeURIComponent(savedPrice._id)}`, { method: 'DELETE' });
-                if (!data.success) throw new Error(data.message || 'Could not remove the price.');
-                messages.push('Price set back to default.');
-            } else if (price === 'save') {
-                const rule = draftRule();
-                const data = await api('sms-price-overrides', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        serviceCode: selectedService.code,
-                        serviceName: decodeHtml(selectedService.name), // API data was escaped for display
-                        countryId: selectedCountry.countryId,
-                        countryName: decodeHtml(selectedCountry.countryName),
-                        pricingType: rule.pricingType,
-                        value: rule.pricingType === 'fixed' ? rule.fixedPriceNGN : rule.markupPercentage
-                    })
-                });
-                if (!data.success) throw new Error(data.message || 'Could not save the price.');
+            // 1. Price And Buffer (one row, saved together; either side may be a no-op)
+            if (price || buffer) {
+                const body = {
+                    serviceCode: selectedService.code,
+                    serviceName: decodeHtml(selectedService.name), // API data was escaped for display
+                    countryId: selectedCountry.countryId,
+                    countryName: decodeHtml(selectedCountry.countryName)
+                };
+                if (price === 'save') {
+                    const rule = draftRule();
+                    body.pricingType = rule.pricingType;
+                    body.value = rule.pricingType === 'fixed' ? rule.fixedPriceNGN : rule.markupPercentage;
+                } else if (price === 'remove') {
+                    body.pricingType = null;
+                }
+                if (buffer === 'save') {
+                    body.bufferPercentage = Number(bufferDraft.value);
+                } else if (buffer === 'remove') {
+                    body.bufferPercentage = null;
+                }
+                const data = await api('sms-price-overrides', { method: 'POST', body: JSON.stringify(body) });
+                if (!data.success) throw new Error(data.message || 'Could not save.');
                 messages.push(decodeHtml(data.message));
             }
 
@@ -892,7 +1027,8 @@
                     <tr class="hover:bg-brand-background/30 transition-colors">
                         <td class="px-6 py-4 font-bold whitespace-nowrap">${r.serviceCode === ANY ? scopeTag('All services') : `${r.serviceName || r.serviceCode} <span class="text-[10px] font-mono text-brand-lightText font-normal">${r.serviceCode}</span>`}</td>
                         <td class="px-6 py-4 whitespace-nowrap">${r.countryId === ANY ? scopeTag('All countries') : `${r.countryName || r.countryId} <span class="text-[10px] font-mono text-brand-lightText">ID ${r.countryId}</span>`}</td>
-                        <td class="px-6 py-4 font-bold whitespace-nowrap">${r.price ? describeRule(r.price) : '<span class="text-brand-lightText font-medium">Default</span>'}</td>
+                        <td class="px-6 py-4 font-bold whitespace-nowrap">${hasPriceRule(r.price) ? describeRule(r.price) : '<span class="text-brand-lightText font-medium">Default</span>'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${r.price?.bufferPercentage != null ? `${r.price.bufferPercentage}%` : '<span class="text-brand-lightText">General</span>'}</td>
                         <td class="px-6 py-4 whitespace-nowrap">${r.pool ? `Operator <span class="font-mono font-bold text-brand-blue">${r.pool.operatorId}</span>` : '<span class="text-brand-lightText">Cheapest</span>'}</td>
                         <td class="px-6 py-4 text-xs text-brand-lightText whitespace-nowrap">${new Date(r.updatedAt).toLocaleString()}<span class="block">${r.updatedBy || ''}</span></td>
                         <td class="px-6 py-4 text-right whitespace-nowrap">
@@ -900,9 +1036,9 @@
                             <button onclick="removeOverride('${r.serviceCode}', '${r.countryId}')" class="text-red-500 font-bold text-[10px] hover:underline">REMOVE</button>
                         </td>
                     </tr>`).join('')
-                : '<tr><td colspan="6" class="px-6 py-8 text-center text-brand-lightText">No overrides. Every number sells at the general markup from the cheapest operator.</td></tr>';
+                : '<tr><td colspan="7" class="px-6 py-8 text-center text-brand-lightText">No overrides. Every number sells at the general markup from the cheapest operator.</td></tr>';
 
-            // 3. Phones: "Facebook · India" with price and style tags, actions on the right
+            // 3. Phones: "Facebook · India" with price, buffer and style tags, actions on the right
             const chip = (text, tone) => `<span class="text-[10px] font-bold rounded-full px-2 py-0.5 border ${tone}">${text}</span>`;
             cards.innerHTML = list.length
                 ? list.map(r => `
@@ -910,7 +1046,8 @@
                         <div class="min-w-0 flex-1">
                             <p class="font-bold truncate">${r.serviceCode === ANY ? 'All services' : (r.serviceName || r.serviceCode)} <span class="text-brand-lightText font-medium">· ${r.countryId === ANY ? 'All countries' : (r.countryName || r.countryId)}</span></p>
                             <div class="flex flex-wrap gap-1.5 mt-1.5">
-                                ${r.price ? chip(describeRule(r.price), 'bg-blue-50 text-brand-blue border-blue-200') : chip('Default price', 'bg-brand-background text-brand-lightText border-brand-border')}
+                                ${hasPriceRule(r.price) ? chip(describeRule(r.price), 'bg-blue-50 text-brand-blue border-blue-200') : chip('Default price', 'bg-brand-background text-brand-lightText border-brand-border')}
+                                ${r.price?.bufferPercentage != null ? chip(`Buffer ${r.price.bufferPercentage}%`, 'bg-amber-50 text-amber-700 border-amber-200') : ''}
                                 ${r.pool ? chip(`Operator ${r.pool.operatorId}`, 'bg-emerald-50 text-emerald-700 border-emerald-200') : ''}
                             </div>
                         </div>
@@ -921,7 +1058,7 @@
                     </li>`).join('')
                 : '<li class="px-4 py-8 text-center text-brand-lightText">No overrides. Every number sells at the general markup from the cheapest operator.</li>';
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-red-500">Error connecting to API.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Error connecting to API.</td></tr>';
             cards.innerHTML = '<li class="px-4 py-8 text-center text-red-500">Error connecting to API.</li>';
         }
     }

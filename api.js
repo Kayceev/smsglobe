@@ -917,9 +917,10 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
 const systemSettingsSchema = new mongoose.Schema({
     maintenanceMode: { type: Boolean, default: false },
     allowSignups: { type: Boolean, default: true },    
-    globalMarkup: { type: Number, default: 0 }, 
-    smsMarkupPercentage: { type: Number, default: 0 }, // Applied to SMS number prices only
+    globalMarkup: { type: Number, default: 0, min: 0 }, // Flat top-up fee; negative would credit more than was deposited
+    smsMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to SMS number prices only; negative would risk selling under cost
     smsFloorPriceNGN: { type: Number, default: 0, min: 0 }, // Lowest marked-up SMS price (fixed prices ignore it)
+    smsBufferPercentage: { type: Number, default: 30, min: 0 }, // How far above the quoted operator's cost SMSBower may substitute another operator, before falling back to the sell price
     accountMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to Sameeha accounts & VPN without their own price
     refillMarkupPercentage: { type: Number, default: 0, min: 0 }, // Applied to Bitrefill phone top-ups without their own price
     usdToNgnRate: { type: Number, default: 1400, min: 1 }, // Converts SMSBower USD prices to NGN
@@ -1151,9 +1152,10 @@ const smsPriceOverrideSchema = new mongoose.Schema({
     serviceName: { type: String }, // Display only
     countryId: { type: String, required: true, trim: true }, // SMSBower country ID, or '*'
     countryName: { type: String }, // Display only
-    pricingType: { type: String, enum: ['markup', 'fixed'], required: true },
-    markupPercentage: { type: Number, default: null }, // Used when pricingType is 'markup'
-    fixedPriceNGN: { type: Number, default: null }, // Used when pricingType is 'fixed' (ignored below cost)
+    pricingType: { type: String, enum: ['markup', 'fixed', null], default: null }, // null: no price override at this level (buffer-only row)
+    markupPercentage: { type: Number, default: null, min: 0 }, // Used when pricingType is 'markup'
+    fixedPriceNGN: { type: Number, default: null, min: 0 }, // Used when pricingType is 'fixed' (ignored below cost)
+    bufferPercentage: { type: Number, default: null, min: 0 }, // Independent of pricingType; null means use the general buffer
     updatedBy: { type: String } // Email of the admin who last saved it
 }, { timestamps: true });
 
@@ -3674,7 +3676,13 @@ async function handlePurchaseWithWallet(req, res) {
                 poolMode: country.poolMode,
                 costUsd: tier.costUsd,
                 baseCostNGN: tier.baseCostNGN,
-                pricing: tier.pricing // Which price rule set the amount
+                pricing: tier.pricing, // Which price rule set the amount
+                bufferPercentage: country.bufferPercentage, // This service+country's resolved buffer (override or general)
+                // Every operator with stock, cheapest cost first, for the buffered pool walk at purchase
+                tiers: (country.tiers || [])
+                    .filter(t => t.count > 0)
+                    .sort((a, b) => a.costUsd - b.costUsd)
+                    .map(t => ({ providerId: t.providerId, costUsd: t.costUsd }))
             };
 
             productDetails.name = `DeemaxHub Global Provision (${country.countryId})`;
@@ -4240,8 +4248,8 @@ async function handlePurchaseWithWallet(req, res) {
                 };
             } else
             try {
-                // ⚠️ CRITICAL: The wallet is already debited here. Both attempts share one time
-                // budget, well inside Vercel's function limit, so the refund below always gets to run.
+                // ⚠️ CRITICAL: The wallet is already debited here. Every walk attempt below shares
+                // one time budget, well inside Vercel's function limit, so the refund below always gets to run.
                 const allocationDeadline = Date.now() + SMS_ALLOCATION_TIMEOUT_MS;
                 const requestNumber = async (extraParams) => {
                     const timeLeft = allocationDeadline - Date.now();
@@ -4255,21 +4263,38 @@ async function handlePurchaseWithWallet(req, res) {
                 // SMSBower getNumberV2 returns a JSON object on success
                 const isAllocated = (reply) => Boolean(reply && (reply.phoneNumber || reply.activationId));
 
-                // 1. Admin's Fixed Operator First, Otherwise The Automatic Pool
+                // ⚠️ CRITICAL: Every request names one operator and its own maxPrice. Without a
+                // cap SMSBower sells from any operator at any price, which once sold ₦1,500
+                // numbers that cost us ₦9,059.
                 let poolMode = smsQuote.poolMode;
-                let data;
-                if (poolMode === 'fixed') {
-                    data = await requestNumber({ providerIds: smsQuote.providerId });
+                const hasOperatorId = /^\d+$/.test(String(smsQuote.providerId || ''));
+                // smsQuote.bufferPercentage is already this service+country's resolved buffer
+                // (its own override, or the general one) from the moment it was quoted.
+                const bufferPct = Number.isFinite(Number(smsQuote.bufferPercentage))
+                    ? Math.max(Number(smsQuote.bufferPercentage), 0)
+                    : Math.max(Number((await getSystemSettingsCached())?.smsBufferPercentage) || 0, 0);
+                const sellPriceUsd = costNGN / (await getUsdToNgnRate());
+                const maxAllowedUsd = Math.min(smsQuote.costUsd * (1 + bufferPct / 100), sellPriceUsd);
 
-                    // 2. Fixed Operator Sold Out: Any Operator At Or Below Its Cost Keeps The Price And Margin
-                    if (!isAllocated(data)) {
-                        console.warn(`SMS fixed operator ${smsQuote.providerId} empty for ${smsQuote.serviceCode}/${smsQuote.countryId}:`, data);
-                        poolMode = 'fallback';
-                        data = await requestNumber({ maxPrice: smsQuote.costUsd });
-                    }
-                } else {
-                    data = await requestNumber(smsQuote.providerId && smsQuote.providerId.length <= 3 ? { providerIds: smsQuote.providerId } : {});
+                // Walk the pool cheapest-first, up to the buffer: the admin's fixed operator goes
+                // first regardless of its own cost, then every other operator with stock, cheapest
+                // to priciest, stopping at the first one that still has a number. At most 6 tries,
+                // so a wide buffer can't eat the whole allocation time budget.
+                const pool = (smsQuote.tiers || []).filter(t => t.costUsd <= maxAllowedUsd);
+                const orderedPool = (hasOperatorId
+                    ? [{ providerId: smsQuote.providerId, costUsd: smsQuote.costUsd }, ...pool.filter(t => t.providerId !== smsQuote.providerId)]
+                    : pool
+                ).slice(0, 6);
+
+                let data = null;
+                let soldBy = null;
+                for (const candidate of orderedPool) {
+                    data = await requestNumber({ providerIds: candidate.providerId, maxPrice: candidate.costUsd });
+                    if (isAllocated(data)) { soldBy = candidate; break; }
+                    if (data === null) break; // Out of time for another try
+                    console.warn(`SMS operator ${candidate.providerId} empty for ${smsQuote.serviceCode}/${smsQuote.countryId}:`, data);
                 }
+                if (soldBy && soldBy.providerId !== smsQuote.providerId) poolMode = 'fallback';
 
                 if (!isAllocated(data)) {
                     await refundWallet();
@@ -4280,14 +4305,13 @@ async function handlePurchaseWithWallet(req, res) {
                 trackingTzid = String(data.activationId);
                 allocatedNumber = String(data.phoneNumber);
 
-                // 3. What SMSBower Actually Sold (admin reporting only)
+                // 3. What SMSBower Actually Sold (admin reporting only; we already know which
+                // operator and cost we asked for, so that's the fallback, not a guess)
                 const reportedCostUsd = Number(data.activationCost) > 0 ? Number(data.activationCost) : null;
                 allocation = {
                     poolMode,
-                    operatorUsed: data.activationOperator != null
-                        ? String(data.activationOperator).slice(0, 64)
-                        : (poolMode === 'fallback' ? null : smsQuote.providerId),
-                    vendorCostUsd: reportedCostUsd ?? (poolMode === 'fallback' ? null : smsQuote.costUsd),
+                    operatorUsed: data.activationOperator != null ? String(data.activationOperator).slice(0, 64) : soldBy.providerId,
+                    vendorCostUsd: reportedCostUsd ?? soldBy.costUsd,
                     canGetAnotherSms: data.canGetAnotherSms == null ? true : ['1', 'true', 'yes'].includes(String(data.canGetAnotherSms).toLowerCase())
                 };
             } catch (apiErr) {
@@ -4335,7 +4359,7 @@ async function handlePurchaseWithWallet(req, res) {
                             countryName: smsQuote.countryName,
                             operator: smsQuote.providerId || null, // Operator the price was quoted from
                             operatorUsed: allocation.operatorUsed, // Operator SMSBower actually sold from
-                            poolMode: allocation.poolMode, // 'auto', 'fixed' or 'fallback'
+                            poolMode: allocation.poolMode, // 'auto', 'fixed' or 'fallback' (widened by the buffer, capped at the sell price)
                             vendorCostUsd: allocation.vendorCostUsd,
                             vendorCostNGN: allocation.vendorCostUsd != null ? Math.round(allocation.vendorCostUsd * (await getUsdToNgnRate())) : null,
                             canGetAnotherSms: allocation.canGetAnotherSms,
@@ -6223,12 +6247,16 @@ function getSmsPriceRules(overrides, serviceCode, countryId) {
     ].filter(([, rule]) => rule).map(([level, rule]) => ({ level, rule }));
 }
 
-// Marked-up prices never go under smsFloorPriceNGN; an admin's fixed price is used as set
+// Marked-up prices never go under smsFloorPriceNGN, and never under this tier's own vendor cost
+// ⚠️ CRITICAL: floorPriceNGN is a flat amount, so on its own it can't protect an expensive tier
+// (e.g. floor ₦1,500 but this operator costs ₦5,000). Clamping to baseCostNGN too means no markup
+// value, however low or negative, can ever sell a number for less than it cost us.
 function resolveSmsTierPrice(baseCostNGN, rules, generalMarkup, floorPriceNGN = 0) {
+    const safeFloor = Math.max(floorPriceNGN, baseCostNGN);
     const withMarkup = (level, markup) => {
         const marked = Number((baseCostNGN * (1 + markup / 100)).toFixed(2));
-        const floored = marked < floorPriceNGN;
-        return { amount: floored ? floorPriceNGN : marked, pricing: { level, type: 'markup', value: markup, ...(floored ? { floor: floorPriceNGN } : {}) } };
+        const floored = marked < safeFloor;
+        return { amount: floored ? safeFloor : marked, pricing: { level, type: 'markup', value: markup, ...(floored ? { floor: safeFloor } : {}) } };
     };
 
     for (const { level, rule } of rules) {
@@ -6238,9 +6266,24 @@ function resolveSmsTierPrice(baseCostNGN, rules, generalMarkup, floorPriceNGN = 
             }
             continue; // Below cost: fall through to the next rule
         }
-        return withMarkup(level, Number(rule.markupPercentage) || 0);
+        if (rule.pricingType === 'markup') {
+            return withMarkup(level, Number(rule.markupPercentage) || 0);
+        }
+        // No pricingType at this level (a buffer-only row): no price rule here, keep looking
     }
     return withMarkup('general', generalMarkup);
+}
+
+// Same service+country precedence as resolveSmsTierPrice, but for the buffer: how far above an
+// operator's cost SMSBower may substitute another one. Independent of whether this level also
+// carries a price rule, so a buffer-only row (no pricingType) still applies.
+function resolveSmsBufferPercentage(rules, generalBuffer) {
+    for (const { level, rule } of rules) {
+        if (rule.bufferPercentage != null) {
+            return { value: Math.max(Number(rule.bufferPercentage) || 0, 0), level };
+        }
+    }
+    return { value: Math.max(Number(generalBuffer) || 0, 0), level: 'general' };
 }
 
 // Turns SMSBower's getCountries reply into [{ countryId, countryName, code }]
@@ -6270,6 +6313,7 @@ async function getSmsPriceCatalog(cleanServiceCode) {
     ]);
     const smsMarkup = systemSettings?.smsMarkupPercentage || 0;
     const smsFloor = Math.max(Number(systemSettings?.smsFloorPriceNGN) || 0, 0);
+    const smsBuffer = Number.isFinite(Number(systemSettings?.smsBufferPercentage)) ? Number(systemSettings.smsBufferPercentage) : 30;
 
     // 1b. Demo Mode: Same Shape, Fake Operators, No Vendor Call
     const formattedCountries = isSmsDemoMode()
@@ -6280,6 +6324,11 @@ async function getSmsPriceCatalog(cleanServiceCode) {
     formattedCountries.forEach(country => {
         const rules = getSmsPriceRules(priceOverrides, cleanServiceCode, country.countryId);
         country.tiers.forEach(tier => Object.assign(tier, resolveSmsTierPrice(tier.baseCostNGN, rules, smsMarkup, smsFloor)));
+
+        // How far SMSBower may substitute another operator above cost, for this service + country
+        const bufferInfo = resolveSmsBufferPercentage(rules, smsBuffer);
+        country.bufferPercentage = bufferInfo.value;
+        country.bufferLevel = bufferInfo.level;
 
         country.tiers.sort((a, b) => {
             if (a.amount !== b.amount) {
@@ -6441,7 +6490,9 @@ async function getSmsCountryPrices(cleanServiceCode) {
             stock: tier.count,
             price: { amount: tier.amount, currency: 'NGN', symbol: '₦' },
             poolMode: fixedTier ? 'fixed' : 'auto', // Server use only
-            tier // Server use only (operator and vendor cost)
+            tier, // Server use only (operator and vendor cost)
+            tiers: country.tiers, // Server use only: every operator, for the buffered pool walk at purchase
+            bufferPercentage: country.bufferPercentage // Server use only: this service+country's resolved buffer
         };
     });
 
@@ -6474,7 +6525,7 @@ async function handleGetCountries(req, res) {
         const countries = await getSmsCountryPrices(serviceCode.trim().toLowerCase());
 
         // Operator, vendor cost and pool mode stay on the server
-        const publicCountries = countries.map(({ tier, poolMode, ...country }) => country);
+        const publicCountries = countries.map(({ tier, tiers, poolMode, bufferPercentage, ...country }) => country);
 
         return res.status(200).json({ success: true, countries: publicCountries });
     } catch (err) {
@@ -6528,7 +6579,8 @@ async function handleGetSmsOperators(req, res) {
             service: priceOverrides.find(o => o.serviceCode === serviceCode && o.countryId === SMS_ANY) || null,
             country: priceOverrides.find(o => o.serviceCode === SMS_ANY && o.countryId === countryId) || null,
             generalMarkup: systemSettings?.smsMarkupPercentage || 0,
-            floorPriceNGN: Math.max(Number(systemSettings?.smsFloorPriceNGN) || 0, 0)
+            floorPriceNGN: Math.max(Number(systemSettings?.smsFloorPriceNGN) || 0, 0),
+            generalBuffer: Number.isFinite(Number(systemSettings?.smsBufferPercentage)) ? Number(systemSettings.smsBufferPercentage) : 30
         };
         const country = catalog.find(c => c.countryId === countryId);
         if (!country) {
@@ -6546,7 +6598,8 @@ async function handleGetSmsOperators(req, res) {
             automatic: toAdminOperator(country.tiers.find(t => t.count > 0) || country.tiers[0]), // Same pick as getSmsCountryPrices
             override,
             overrideAvailable: Boolean(overrideTier && overrideTier.count > 0),
-            priceRules
+            priceRules,
+            bufferPercentage: country.bufferPercentage // The resolved buffer for this exact service + country
         });
     } catch (err) {
         console.error("SMS Operators Error:", err.response?.data || err.message);
@@ -6631,6 +6684,7 @@ async function handleDeleteSmsPoolOverride(req, res) {
 // --- SMS PRICE OVERRIDES (ADMIN) ---
 const SMS_MAX_MARKUP_PERCENT = 1000;
 const SMS_MAX_FIXED_PRICE_NGN = 10000000;
+const SMS_MAX_BUFFER_PERCENT = 500;
 
 // Every country SMSBower sells in, for "All services" price rules
 async function handleGetSmsCountryList(req, res) {
@@ -6658,7 +6712,7 @@ async function handleGetSmsPriceOverrides(req, res) {
 }
 
 async function handleSaveSmsPriceOverride(req, res) {
-    const { serviceCode, countryId, pricingType, value, serviceName, countryName } = req.body;
+    const { serviceCode, countryId, pricingType, value, bufferPercentage, serviceName, countryName } = req.body;
     const isCode = (code) => typeof code === 'string' && (code.trim() === SMS_ANY || SMS_CODE_PATTERN.test(code.trim()));
     if (!isCode(serviceCode) || !isCode(countryId)) {
         return res.status(400).json({ success: false, message: "Choose a service and a country." });
@@ -6666,53 +6720,101 @@ async function handleSaveSmsPriceOverride(req, res) {
     const cleanService = serviceCode.trim().toLowerCase();
     const cleanCountry = countryId.trim();
     if (cleanService === SMS_ANY && cleanCountry === SMS_ANY) {
-        return res.status(400).json({ success: false, message: "For every service in every country, change the general SMS markup instead." });
+        return res.status(400).json({ success: false, message: "For every service in every country, change the general SMS markup and buffer instead." });
     }
 
-    // 1. Markup % Or A Fixed NGN Price
+    // 1. Price And Buffer Are Independent: Either, Both, Or Neither Changes On This Save
+    // pricingType: 'markup'/'fixed' sets it, null clears it back to default pricing, undefined leaves it alone
+    const hasPriceField = pricingType !== undefined;
+    const isClearingPrice = hasPriceField && pricingType === null;
+    const hasPriceChange = hasPriceField && !isClearingPrice;
+    // bufferPercentage: a number sets it, null clears it back to the general buffer, undefined leaves it alone
+    const hasBufferField = bufferPercentage !== undefined;
+    const isClearingBuffer = hasBufferField && bufferPercentage === null;
+    const isSettingBuffer = hasBufferField && !isClearingBuffer;
+
+    if (!hasPriceField && !hasBufferField) {
+        return res.status(400).json({ success: false, message: "Set a price, a buffer, or both." });
+    }
+
+    // 2. Markup % Or A Fixed NGN Price (only validated when this save actually changes the price)
     const amount = Number(value);
-    if (pricingType === 'markup' && !(Number.isFinite(amount) && amount >= 0 && amount <= SMS_MAX_MARKUP_PERCENT)) {
-        return res.status(400).json({ success: false, message: `Markup must be between 0% and ${SMS_MAX_MARKUP_PERCENT}%.` });
+    if (hasPriceChange) {
+        if (pricingType === 'markup' && !(Number.isFinite(amount) && amount >= 0 && amount <= SMS_MAX_MARKUP_PERCENT)) {
+            return res.status(400).json({ success: false, message: `Markup must be between 0% and ${SMS_MAX_MARKUP_PERCENT}%.` });
+        }
+        if (pricingType === 'fixed' && !(Number.isFinite(amount) && amount >= 1 && amount <= SMS_MAX_FIXED_PRICE_NGN)) {
+            return res.status(400).json({ success: false, message: "Enter a fixed price in Naira." });
+        }
+        if (!['markup', 'fixed'].includes(pricingType)) {
+            return res.status(400).json({ success: false, message: "Choose markup or fixed price." });
+        }
     }
-    if (pricingType === 'fixed' && !(Number.isFinite(amount) && amount >= 1 && amount <= SMS_MAX_FIXED_PRICE_NGN)) {
-        return res.status(400).json({ success: false, message: "Enter a fixed price in Naira." });
-    }
-    if (!['markup', 'fixed'].includes(pricingType)) {
-        return res.status(400).json({ success: false, message: "Choose markup or fixed price." });
+
+    // 3. The Buffer: How Far Above Cost This Pair May Substitute Another Operator
+    const bufferAmount = Number(bufferPercentage);
+    if (isSettingBuffer && !(Number.isFinite(bufferAmount) && bufferAmount >= 0 && bufferAmount <= SMS_MAX_BUFFER_PERCENT)) {
+        return res.status(400).json({ success: false, message: `Buffer must be between 0% and ${SMS_MAX_BUFFER_PERCENT}%.` });
     }
 
     try {
-        // 2. One Row Per Service + Country Pair (saving again replaces it)
-        const override = await SmsPriceOverride.findOneAndUpdate(
+        // 4. One Row Per Service + Country Pair (saving again replaces whichever part changed,
+        // and clearing one side — e.g. price back to default — never touches the other)
+        const setFields = {
+            serviceName: cleanService === SMS_ANY ? 'All services' : (cleanText(serviceName, 80) || cleanService.toUpperCase()),
+            countryName: cleanCountry === SMS_ANY ? 'All countries' : (cleanText(countryName, 80) || `Country ${cleanCountry}`),
+            updatedBy: req.admin?.email || null
+        };
+        if (hasPriceChange) {
+            setFields.pricingType = pricingType;
+            setFields.markupPercentage = pricingType === 'markup' ? Number(amount.toFixed(2)) : null;
+            setFields.fixedPriceNGN = pricingType === 'fixed' ? Math.round(amount) : null;
+        } else if (isClearingPrice) {
+            setFields.pricingType = null;
+            setFields.markupPercentage = null;
+            setFields.fixedPriceNGN = null;
+        }
+        if (isSettingBuffer) {
+            setFields.bufferPercentage = Number(bufferAmount.toFixed(2));
+        } else if (isClearingBuffer) {
+            setFields.bufferPercentage = null;
+        }
+
+        let override = await SmsPriceOverride.findOneAndUpdate(
             { serviceCode: cleanService, countryId: cleanCountry },
-            {
-                $set: {
-                    pricingType,
-                    markupPercentage: pricingType === 'markup' ? Number(amount.toFixed(2)) : null,
-                    fixedPriceNGN: pricingType === 'fixed' ? Math.round(amount) : null,
-                    serviceName: cleanService === SMS_ANY ? 'All services' : (cleanText(serviceName, 80) || cleanService.toUpperCase()),
-                    countryName: cleanCountry === SMS_ANY ? 'All countries' : (cleanText(countryName, 80) || `Country ${cleanCountry}`),
-                    updatedBy: req.admin?.email || null
-                }
-            },
+            { $set: setFields },
             { upsert: true, returnDocument: 'after' }
         );
 
-        // 3. Warn When A Fixed Price Is Under What SMSBower Charges (it is skipped for those operators)
-        let message = "Price saved.";
-        if (pricingType === 'fixed' && cleanService !== SMS_ANY && cleanCountry !== SMS_ANY) {
-            const catalog = await getSmsPriceCatalog(cleanService).catch(() => []);
-            const tiers = catalog.find(c => c.countryId === cleanCountry)?.tiers || [];
-            const cheapestCost = Math.min(...tiers.filter(t => t.count > 0).map(t => t.baseCostNGN));
-            if (Number.isFinite(cheapestCost) && override.fixedPriceNGN < cheapestCost) {
-                message = `Price saved, but ₦${override.fixedPriceNGN.toLocaleString()} is below SMSBower's cost (₦${Math.ceil(cheapestCost).toLocaleString()}), so the next rule down prices this number.`;
-            }
-        } else if (pricingType === 'fixed') {
-            message = "Price saved. Wherever SMSBower's cost is above it, the next rule down prices the number.";
+        // Nothing left active on this row (both price and buffer cleared): remove it rather
+        // than leave an empty row behind
+        if (override && !override.pricingType && override.bufferPercentage == null) {
+            await SmsPriceOverride.deleteOne({ _id: override._id });
+            return res.json({ success: true, message: "Back to default.", override: null });
         }
 
-        console.log(`✅ SMS price override: ${cleanService}/${cleanCountry} → ${pricingType} ${amount} by ${req.admin?.email}`);
-        return res.json({ success: true, message, override });
+        // 5. Warn When A Fixed Price Is Under What SMSBower Charges (it is skipped for those operators)
+        const messages = [];
+        if (hasPriceChange) {
+            if (pricingType === 'fixed' && cleanService !== SMS_ANY && cleanCountry !== SMS_ANY) {
+                const catalog = await getSmsPriceCatalog(cleanService).catch(() => []);
+                const tiers = catalog.find(c => c.countryId === cleanCountry)?.tiers || [];
+                const cheapestCost = Math.min(...tiers.filter(t => t.count > 0).map(t => t.baseCostNGN));
+                messages.push(Number.isFinite(cheapestCost) && override.fixedPriceNGN < cheapestCost
+                    ? `Price saved, but ₦${override.fixedPriceNGN.toLocaleString()} is below SMSBower's cost (₦${Math.ceil(cheapestCost).toLocaleString()}), so the next rule down prices this number.`
+                    : "Price saved.");
+            } else if (pricingType === 'fixed') {
+                messages.push("Price saved. Wherever SMSBower's cost is above it, the next rule down prices the number.");
+            } else {
+                messages.push("Price saved.");
+            }
+        }
+        if (isClearingPrice) messages.push("Price reset to default.");
+        if (isSettingBuffer) messages.push(`Buffer saved at ${bufferAmount}%.`);
+        if (isClearingBuffer) messages.push("Buffer reset to the general setting.");
+
+        console.log(`✅ SMS price override: ${cleanService}/${cleanCountry} → ${hasPriceChange ? `${pricingType} ${amount}` : (isClearingPrice ? 'default' : 'price unchanged')}, ${hasBufferField ? `buffer ${isClearingBuffer ? 'general' : bufferAmount + '%'}` : 'buffer unchanged'} by ${req.admin?.email}`);
+        return res.json({ success: true, message: messages.join(' '), override });
     } catch (err) {
         console.error("Save SMS Price Override Error:", err);
         return res.status(500).json({ success: false, message: "Internal server error." });
@@ -8801,7 +8903,7 @@ async function handleUpdateSystemSettings(req, res) {
 
     try {
         // Only known settings fields can be written
-        const SETTINGS_FIELDS = ['maintenanceMode', 'allowSignups', 'globalMarkup', 'smsMarkupPercentage', 'smsFloorPriceNGN', 'accountMarkupPercentage', 'refillMarkupPercentage', 'usdToNgnRate', 'noticeBarText', 'supportWhatsapp',
+        const SETTINGS_FIELDS = ['maintenanceMode', 'allowSignups', 'globalMarkup', 'smsMarkupPercentage', 'smsFloorPriceNGN', 'smsBufferPercentage', 'accountMarkupPercentage', 'refillMarkupPercentage', 'usdToNgnRate', 'noticeBarText', 'supportWhatsapp',
             'referralBonusNGN', 'referralMilestone', 'referralMinDepositNGN'];
         const updateData = {};
         SETTINGS_FIELDS.forEach(field => {
