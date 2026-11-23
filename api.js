@@ -2026,6 +2026,9 @@ async function handleGoogleLogin(req, res) {
         }
 
         let user = await User.findOne({ email: normalizedEmail });
+        // Only a brand-new account or one Google has just verified counts as a signup
+        // (not every Google login), so the frontend fires CompleteRegistration correctly
+        const isNewAccount = !user || !user.isVerified;
 
         // A referral code only matters for a signup (new or still unverified)
         let referredBy = null;
@@ -2079,7 +2082,7 @@ async function handleGoogleLogin(req, res) {
         }
 
         const adminToken = await buildAdminSessionFor(user, { google: true });
-        return res.json(signInResponse(user, adminToken));
+        return res.json({ ...signInResponse(user, adminToken), isNewAccount });
 
     } catch (err) {
         console.error("Google Auth Error:", err);
